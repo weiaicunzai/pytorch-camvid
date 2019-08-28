@@ -1,50 +1,143 @@
 import os
+import pickle
+import cv2
 
-import torch
 from torch.utils.data import Dataset
-from skimage.data import imread
-import pandas as pd
 import numpy as np
-import matplotlib.pyplot as plt
-from conf import settings
 
-def rle_decode(mask_rle, shape=(768, 768)):
-    s = mask_rle.split()
-    print(s)
-    print(s[0:])
-    starts, length = [np.asarray(x, dtype=int) for x in (s[::2], s[1::2])]
-    print(type(starts))
-    print(type(length))
-    starts -= 1
-    ends = starts + length
-    img = np.zeros(shape[0] * shape[1], dtype=np.uint8)
-    for lo, hi in zip(starts, ends):
-        print(lo, hi)
-        img[lo:hi] = 1
+
+class TableBorder(Dataset):
+
+    def __init__(self, data_folder, transforms=None):
+        super().__init__()
+
+        self.trans = transforms
+        self.image_folder = os.path.join(data_folder, 'images')
+
+        #self.mask_data = [
+        #   {
+        #       img_name : Images_00001.jpeg,
+        #       visibel_row_mask : numpy array(0 and 1)
+        #       visibel_col_mask : numpy array(0 and 1)
+        #   },
+        #   {
+        #       img_name : Images_00002.jpeg,
+        #       visibel_row_mask : numpy array(0 and 1)
+        #       visibel_col_mask : numpy array(0 and 1)
+        #   },
+        #   ...
+        # ]
+        with open(os.path.join(data_folder, 'mask_data'), 'rb') as f:
+            self.mask_data = pickle.load(f)
+
+    def __len__(self):
+        return len(self.mask_data)
+
+    def __getitem__(self, index):
+        mask_data = self.mask_data[index]
+        image = cv2.imread(os.path.join(self.image_folder, mask_data['img_name']))
+
+        visible_row_mask = mask_data['visible_row_mask']
+        visible_col_mask = mask_data['visible_col_mask']
+
+        mask = np.dstack((visible_row_mask, visible_col_mask))
+
+        if self.trans:
+            image, mask = self.trans(image, mask)
+
+        return image, mask
+
+def compute_mean_and_std(dataset):
+    """Compute dataset mean and std, and normalize it
+    Args:
+        dataset: instance of torch.nn.Dataset
     
-    return img.reshape(shape).T
-    #fig, axarr = plt.subplots(1, 3, figsize=(15, 40)) 
-    #axarr[0].imshow(img)
-    #plt.show()
+    Returns:
+        return: mean and std of this dataset
+    """
 
-#class ShipDataset
+    mean_r = 0
+    mean_g = 0
+    mean_b = 0
 
-#LABLE_PATH = '/nfs/project/baiyu/dataset/'
-train_df = pd.read_csv(os.path.join(settings.LABLE_PATH, 'train_ship_segmentations_v2.csv'))
-print(train_df.head())
+    for img, _ in dataset:
+        mean_b += np.mean(img[:, :, 0])
+        mean_g += np.mean(img[:, :, 1])
+        mean_r += np.mean(img[:, :, 2])
 
-ImageId = '001a7cba8.jpg'
-img_mask = train_df.loc[train_df['ImageId'] == ImageId, 'EncodedPixels'].tolist()
-print(img_mask)
+    mean_b /= len(dataset)
+    mean_g /= len(dataset)
+    mean_r /= len(dataset)
 
-all_masks = np.zeros((768, 768))
+    diff_r = 0
+    diff_g = 0
+    diff_b = 0
 
-for mask in img_mask:
-    if mask == mask:
-        all_masks += rle_decode(mask)
+    N = 0
 
-fig, axarr = plt.subplots(1, 1, figsize=(5, 5))
-axarr.axis('off')
-axarr.imshow(all_masks)
-plt.tight_layout(h_pad=0.1, w_pad=0.1)
-plt.show()
+    for img, _ in dataset:
+
+        diff_b += np.sum(np.power(img[:, :, 0] - mean_b, 2))
+        diff_g += np.sum(np.power(img[:, :, 1] - mean_g, 2))
+        diff_r += np.sum(np.power(img[:, :, 2] - mean_r, 2))
+
+        N += np.prod(img[:, :, 0].shape)
+
+    std_b = np.sqrt(diff_b / N)
+    std_g = np.sqrt(diff_g / N)
+    std_r = np.sqrt(diff_r / N)
+
+    mean = (mean_b.item() / 255.0, mean_g.item() / 255.0, mean_r.item() / 255.0)
+    std = (std_b.item() / 255.0, std_g.item() / 255.0, std_r.item() / 255.0)
+    return mean, std
+
+#dataset = TableBorder("/home/baiyu/Downloads/web_crawler")
+#print(len(dataset))
+###
+#image, mask = dataset[33]
+#
+##for i in dataset:
+##    img = i[0]
+##    print(img.shape)
+#
+#print(compute_mean_and_std(dataset))
+#
+##
+##print(mask.shape)
+#mask = cv2.resize(mask, (512, 512))
+#trans = RandomResizedCrop(512)
+#image, mask = trans(image, mask)
+#
+#trans = RandomHorizontalFlip()
+#image, mask = trans(image, mask)
+#
+#trans = ColorJitter()
+#image, mask = trans(image, mask)
+##
+##print(np.max(mask))
+##print(mask.dtype)
+##
+#cv2.imshow("mask1", mask[: , :, 0] * 255)
+#cv2.imshow("mask2", mask[: , :, 1] * 255)
+#cv2.imshow("image", image)
+#cv2.waitKey(0)
+##print(mask.shape)
+##print(mask.shape)
+##a = mask.shape[0] * mask.shape[1] * mask.shape[2]
+##print(np.sum(mask) / a)
+##
+##cv2.imshow("ff", image)
+##print(image.shape)
+##print(mask.shape)
+##cv2.imshow("hh", mask[:, :, 2] * 255)
+##cv2.waitKey(0)
+##
+##
+##
+##
+###image_path = "/home/baiyu/Downloads/web_crawler/images/Image_00002.jpeg"
+##
+###img = io.imread(image_path)
+###img = resize(img, (512, 512))
+###io.imshow(img)
+###plt.show()
