@@ -3,6 +3,7 @@ import os
 import argparse
 import torch
 import torch.nn as nn
+import torch.optim as optim
 
 import transforms
 from model import UNet
@@ -11,6 +12,7 @@ from conf import settings
 
 from lr_scheduler import WarmUpLR
 from dataset import TableBorder
+from utils import get_iou
 
 
 
@@ -57,6 +59,8 @@ if __name__ == '__main__':
     validation_loader = torch.utils.data.DataLoader(valid_dataset, batch_size=args.b,
                                                 sampler=valid_sampler)
 
+    optimizer = optim.SGD(net.parameters(), lr=args.lr, momentum=0.9, weight_decay=1e-4, nesterov=True)
+    iter_per_epoch = len(train_indices) / args.b
     warmup_scheduler = WarmUpLR(optimizer, iter_per_epoch * args.warm)
     train_scheduler = optim.lr_scheduler.MultiStepLR(optimizer, milestones=settings.MILESTONES)
     loss_fn = nn.BCELoss()
@@ -68,7 +72,10 @@ if __name__ == '__main__':
 
         net.train()
 
+        ious = 0
         for batch_idx, (images, masks) in  enumerate(train_loader):
+            if epoch <= args.warm:
+                warmup_scheduler.step()
 
             images = images.cuda()
             masks = masks.cuda()
@@ -80,7 +87,40 @@ if __name__ == '__main__':
 
             optimizer.step()
 
-        
+            n_iter = (epoch - 1) * iter_per_epoch + batch_idx + 1
+            iou = get_iou(preds, masks)
+            print('Training Epoch: {epoch} [{trained_samples}/{total_samples}]\tLoss: {:0.4f}\tmIOU{miou}'.format(
+                loss.item(),
+                epoch=epoch,
+                trained_samples=batch_idx * args.b + len(images),
+                total_samples=len(train_indices),
+                miou=iou
+            ))
+
+        net.eval()
+        test_loss = 0.0
+
+        for batch_idx, (images, masks) in  enumerate(valid_dataset):
+
+            images = images.cuda()
+            masks = masks.cuda()
+
+            preds = net(images)
+
+            loss = loss_fn(preds, masks)
+            test_loss += loss.item()
 
 
-        
+            n_iter = (epoch - 1) * iter_per_epoch + batch_idx + 1
+            iou = get_iou(preds, masks)
+            ious += iou
+
+        print('Test set: Average loss: {:.4f}, mIOU: {:.4f}'.format(
+            test_loss / split,
+            ious
+        )) 
+
+
+
+
+
