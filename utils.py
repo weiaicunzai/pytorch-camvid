@@ -1,10 +1,10 @@
 
 def get_iou(preds, gt, thresh=0.5):
-    p = preds.copy()
-    g = gt.copy()
+    p = preds.clone()
+    g = gt.clone()
 
-    p[g < thresh] = 0
-    p[g >= thresh] = 1
+    p[p < thresh] = 0
+    p[p >= thresh] = 1
 
     s = p + g
     inter_area = s[s == 2].size()[0]

@@ -13,6 +13,8 @@ TIME_NOW = datetime.now().isoformat()
 #save weights file per SAVE_EPOCH epoch
 SAVE_EPOCH = 10
 
-DATA_PATH = '/home/baiyu/Downloads/web_crawler'
+DATA_PATH = '/home/xuanhua/baiyu'
 
 IMAGE_SIZE = 512
+
+MILESTONES = [30, 40, 45]

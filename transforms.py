@@ -31,6 +31,37 @@ class Compose:
         format_string += '\n)'
         return format_string
 
+class Resize:
+    """Resize an image and an mask to given size
+    Args:
+        size: expected output size of each edge
+        scale: range of size of the origin size cropped
+        ratio: range of aspect ratio of the origin aspect ratio cropped (w / h)
+        interpolation: Default: cv2.INTER_LINEAR: 
+    """
+
+    def __init__(self, size, scale=(0.08, 1.0), ratio=(3.0 / 4.0, 4.0 / 3.0), interpolation='linear'):
+
+        self.methods={
+            "area":cv2.INTER_AREA, 
+            "nearest":cv2.INTER_NEAREST, 
+            "linear" : cv2.INTER_LINEAR, 
+            "cubic" : cv2.INTER_CUBIC, 
+            "lanczos4" : cv2.INTER_LANCZOS4
+        }
+
+        self.size = (size, size)
+        self.interpolation = self.methods[interpolation]
+        self.scale = scale
+        self.ratio = ratio
+
+    def __call__(self, img, mask):
+
+        resized_img = cv2.resize(img, self.size, interpolation=self.interpolation)
+        resized_mask = cv2.resize(mask, self.size, interpolation=self.interpolation)
+
+        return resized_img, resized_mask
+
 class RandomResizedCrop:
     """Randomly crop a rectangle region whose aspect ratio is randomly sampled 
     in [3/4, 4/3] and area randomly sampled in [8%, 100%], then resize the cropped
@@ -90,20 +121,6 @@ class RandomResizedCrop:
         resized_mask = cv2.resize(cropped_mask, self.size, interpolation=self.interpolation)
 
         return resized_img, resized_mask
-
-    def __repr__(self):
-        for name, inter in self.methods.items():
-            if inter == self.interpolation:
-                inter_name = name
-
-        interpolate_str = inter_name
-        format_str = self.__class__.__name__ + '(size={0}'.format(self.size)
-        format_str += ', scale={0}'.format(tuple(round(s, 4) for s in self.scale))
-        format_str += ', ratio={0}'.format(tuple(round(r, 4) for r in self.ratio))
-        format_str += ', interpolation={0})'.format(interpolate_str)
-
-        return format_str
-
 
 class RandomHorizontalFlip:
     """Horizontally flip the given opencv image with given probability p.
@@ -221,6 +238,7 @@ class ToTensor:
 
         mask = mask.transpose(2, 0, 1)
         mask = torch.from_numpy(mask)
+        mask = mask.float()
 
         return img, mask
 
