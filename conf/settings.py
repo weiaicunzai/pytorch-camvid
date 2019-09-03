@@ -15,6 +15,6 @@ SAVE_EPOCH = 10
 
 DATA_PATH = '/home/xuanhua/baiyu'
 
-IMAGE_SIZE = 512
+IMAGE_SIZE = 256
 
-MILESTONES = [30, 40, 45]
+MILESTONES = [30, 50, 70]

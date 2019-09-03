@@ -3,3 +3,7 @@ __pycache__
 *.jpg
 *.png
 checkpoints
+mnist
+test.py
+all_scalars.json
+runs
