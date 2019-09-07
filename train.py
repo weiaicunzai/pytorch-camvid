@@ -12,7 +12,7 @@ from torch.utils.data.sampler import SubsetRandomSampler
 from conf import settings
 
 from lr_scheduler import WarmUpLR
-from dataset import TableBorder
+from dataset.voc2012 import VOC2012
 from utils import Metrics
 
 
@@ -26,7 +26,7 @@ if __name__ == '__main__':
                         help='initial learning rate')
     parser.add_argument('-e', type=int, default=100, help='training epoches')
     parser.add_argument('-warm', type=int, default=5, help='warm up phase')
-    parser.add_argument('-c', type=int, default=2, help='number of class')
+    #parser.add_argument('-c', type=int, default=2, help='number of class')
 
     args = parser.parse_args()
 
@@ -48,26 +48,27 @@ if __name__ == '__main__':
         transforms.ToTensor()
     ])
 
-    train_dataset = TableBorder(
-        settings.DATA_PATH, transforms=train_transforms)
-    valid_dataset = TableBorder(
-        settings.DATA_PATH, transforms=train_transforms)
+    #train_dataset = TableBorder(
+    #    settings.DATA_PATH, transforms=train_transforms)
+    #valid_dataset = TableBorder(
+    #    settings.DATA_PATH, transforms=train_transforms)
 
-    split = int(0.2 * len(train_dataset))
+    #split = int(0.2 * len(train_dataset))
 
-    indices = list(range(len(valid_dataset)))
-    train_indices, val_indices = indices[split:], indices[:split]
-    print(val_indices)
+    #indices = list(range(len(valid_dataset)))
+    #train_indices, val_indices = indices[split:], indices[:split]
+    #print(val_indices)
 
-    train_sampler = SubsetRandomSampler(train_indices)
-    valid_sampler = SubsetRandomSampler(val_indices)
+    #train_sampler = SubsetRandomSampler(train_indices)
+    #valid_sampler = SubsetRandomSampler(val_indices)
 
-    train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=args.b,
-                                               sampler=train_sampler)
-    validation_loader = torch.utils.data.DataLoader(valid_dataset, batch_size=args.b,
-                                                    sampler=valid_sampler)
+    train_dataset = VOC2012(settings.DATA_PATH, 'train')
+    valid_dataset = VOC2012(settings.DATA_PATH, 'val')
 
-    net = UNet(3, args.c)
+    train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=args.b)
+    validation_loader = torch.utils.data.DataLoader(valid_dataset, batch_size=args.b)
+
+    net = UNet(3, settings.CLASS_NUMBER)
     net = net.cuda()
     optimizer = optim.SGD(net.parameters(), lr=args.lr,
                           momentum=0.9, weight_decay=1e-4, nesterov=True)

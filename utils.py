@@ -1,5 +1,6 @@
 
 import torch
+import numpy as np
 
 class Metrics:
     """evaluate predictions, supported metrics: mIOU, F1, presicion,
@@ -224,7 +225,47 @@ class Metrics:
 ##print(torch.mean(F1))
 ##print((F1[0] + F1[1]) / 2)
 
+def compute_mean_and_std(dataset):
+    """Compute dataset mean and std, and normalize it
+    Args:
+        dataset: instance of torch.nn.Dataset
+    
+    Returns:
+        return: mean and std of this dataset
+    """
 
+    mean_r = 0
+    mean_g = 0
+    mean_b = 0
 
+    #opencv BGR channel
+    for img, _ in dataset:
+        mean_b += np.mean(img[:, :, 0])
+        mean_g += np.mean(img[:, :, 1])
+        mean_r += np.mean(img[:, :, 2])
 
+    mean_b /= len(dataset)
+    mean_g /= len(dataset)
+    mean_r /= len(dataset)
 
+    diff_r = 0
+    diff_g = 0
+    diff_b = 0
+
+    N = 0
+
+    for img, _ in dataset:
+
+        diff_b += np.sum(np.power(img[:, :, 0] - mean_b, 2))
+        diff_g += np.sum(np.power(img[:, :, 1] - mean_g, 2))
+        diff_r += np.sum(np.power(img[:, :, 2] - mean_r, 2))
+
+        N += np.prod(img[:, :, 0].shape)
+
+    std_b = np.sqrt(diff_b / N)
+    std_g = np.sqrt(diff_g / N)
+    std_r = np.sqrt(diff_r / N)
+
+    mean = (mean_b.item() / 255.0, mean_g.item() / 255.0, mean_r.item() / 255.0)
+    std = (std_b.item() / 255.0, std_g.item() / 255.0, std_r.item() / 255.0)
+    return mean, std

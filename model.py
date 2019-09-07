@@ -132,6 +132,5 @@ class UNet(nn.Module):
         x = self.up4(xup4)
 
         x = self.output(x)
-        x = self.sigmoid(x)
 
         return x
