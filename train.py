@@ -182,12 +182,12 @@ if __name__ == '__main__':
                 preds = preds.argmax(dim=1)
                 preds = preds.view(-1).cpu().data.numpy()
                 masks = masks.view(-1).cpu().data.numpy()
-                metrics.add(images, masks)
+                metrics.add(preds, masks)
                 n_iter = (epoch - 1) * iter_per_epoch + batch_idx + 1
 
-        miou = metric.iou()
-        precision = metric.precision()
-        recall = metric.recall()
+        miou = metrics.iou()
+        precision = metrics.precision()
+        recall = metrics.recall()
         metrics.clear()
 
         print('Test set Average loss: {:.4f}, mIOU: {:.4f}, recall: {0:4f}, precision: {0:4f}'.format(
