@@ -151,9 +151,9 @@ if __name__ == '__main__':
 
             n_iter = (epoch - 1) * iter_per_epoch + batch_idx + 1
             print(('Training Epoch:{epoch} [{trained_samples}/{total_samples}] '
-                    'Lr:{lr:0.6f} Loss:{:0.4f} mIOU{miou:0.4f} '
+                    'Lr:{lr:0.6f} Loss:{loss:0.4f} mIOU{miou:0.4f} '
                     'Recall:{recall:0.4f} Precision:{precision:0.4f}').format(
-                loss.item(),
+                loss=loss.item(),
                 epoch=epoch,
                 trained_samples=batch_idx * args.b + len(images),
                 total_samples=len(train_dataset),
@@ -190,10 +190,18 @@ if __name__ == '__main__':
         recall = metrics.recall()
         metrics.clear()
 
-        print('Test set Average loss: {:.4f}, mIOU: {:.4f}, recall: {0:4f}, precision: {0:4f}'.format(
-            test_loss / len(valid_dataset),
-            recall,
-            precision
+        eval_msg = (
+            'Test set Average loss: {loss:.4f}, '
+            'mIOU: {miou:.4f}, '
+            'recall: {recall:.4f}, '
+            'precision: {precision:.4f}'
+        )
+
+        print(eval_msg.format(
+            loss=test_loss / len(valid_dataset),
+            miou=miou
+            recall=recall,
+            precision=precision
         ))
 
         if best_iou < miou and epoch > settings.MILESTONES[-1]:
