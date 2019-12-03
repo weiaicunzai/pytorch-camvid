@@ -140,6 +140,7 @@ if __name__ == '__main__':
 
             optimizer.step()
 
+            preds = preds.argmax(dim=1)
             preds = preds.view(-1).cpu().data.numpy()
             masks = masks.view(-1).cpu().data.numpy()
             metrics.add(preds, masks)
