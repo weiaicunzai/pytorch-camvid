@@ -7,3 +7,4 @@ mnist
 test.py
 all_scalars.json
 runs
+camvid
