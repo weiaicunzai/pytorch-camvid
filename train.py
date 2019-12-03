@@ -156,7 +156,7 @@ if __name__ == '__main__':
                 loss.item(),
                 epoch=epoch,
                 trained_samples=batch_idx * args.b + len(images),
-                total_samples=len(train_indices),
+                total_samples=len(train_dataset),
                 miou=iou,
                 recall=recall,
                 precision=precision,
