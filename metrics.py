@@ -47,7 +47,7 @@ class Metrics:
         recall = self._confusion_matrix.sum(axis=1)
 
         if self.ignore_index:
-            recall_mask = [i for i in range(self.class_num) if i != self.class_num]
+            recall_mask = [i for i in range(self.class_num) if i != self.ignore_index]
             recall = recall[recall_mask]
         if average:
             recall = recall.mean()
