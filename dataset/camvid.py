@@ -6,6 +6,15 @@ import numpy as np
 
 class CamVid(Dataset):
     def __init__(self, data_path, class_num, data_type='train', transforms=None):
+        """
+        Camvid dataset:https://course.fast.ai/datasets
+
+        Args:
+            data_path: path to dataset folder
+            class_num: number of classes
+            data_type: train datset or validation dataset, 'train', or 'val'
+            transforms: data augmentations
+        """
 
         self.class_num = class_num
         self.data_type = data_type
@@ -21,7 +30,9 @@ class CamVid(Dataset):
         codes = np.loadtxt(os.path.join(self.data_path, 'codes.txt'), dtype=str)
         self.ignore_index = list(codes).index('Void')
 
-        images = set(os.listdir(os.path.join(self.data_path, 'images')))
+        images = os.listdir(os.path.join(self.data_path, 'images'))
+        images = {image for image in images if image.endswith('.png')}
+
         if self.data_type == 'train':
             self.image_names = list(images - set(valid))
         elif self.data_type == 'val':
