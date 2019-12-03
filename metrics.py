@@ -48,7 +48,7 @@ class Metrics:
         if self.ignore_index:
             recall = [recall[i] for i in range(self.class_num) if i != self.class_num]
         if average:
-            recall = recall.eman()
+            recall = recall.mean()
 
         return recall
 
