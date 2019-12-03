@@ -35,7 +35,7 @@ class Metrics:
     def precision(self, average=True):
         
         cm = self._confusion_matrix
-        precision = np.diag(cm) / cm.sum(axis=0)
+        precision = np.diag(cm) / (cm.sum(axis=0) + 1e-15)
 
         if self.ignore_index:
             precision_mask = [i for i in range(self.class_num) if i != self.ignore_index]
@@ -48,7 +48,7 @@ class Metrics:
     def recall(self, average=True):
 
         cm = self._confusion_matrix
-        recall = np.diag(cm) / cm.sum(axis=1)
+        recall = np.diag(cm) /(cm.sum(axis=1) + 1e-15)
 
         if self.ignore_index:
             recall_mask = [i for i in range(self.class_num) if i != self.ignore_index]
