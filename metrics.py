@@ -63,7 +63,7 @@ class Metrics:
         cm = self._confusion_matrix
         iou = np.diag(cm) / (cm.sum(axis=1) + cm.sum(axis=0) - np.diag(cm) + 1e-15)
         iou_mask = [i for i in range(self.class_num) if i != self.ignore_index]
-        iou = iou[tp_mask]
+        iou = iou[iou_mask]
 
         if average:
             iou = iou.mean()
