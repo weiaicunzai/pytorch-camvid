@@ -19,7 +19,7 @@ class Metrics:
         # https://scikit-learn.org/stable/modules/model_evaluation.html#confusion-matrix
         self._confusion_matrix = np.zeros((self.class_num, self.class_num))
 
-    def add(self, reds : np.array, gts : np.array):
+    def add(self, preds : np.array, gts : np.array):
         """update confusion matrix
 
         Args:
