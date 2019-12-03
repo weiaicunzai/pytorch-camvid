@@ -150,8 +150,8 @@ if __name__ == '__main__':
             miou = metrics.iou()
 
             n_iter = (epoch - 1) * iter_per_epoch + batch_idx + 1
-            print(('Training Epoch: {epoch} [{trained_samples}/{total_samples}'
-                    'Lr:{lr:0.6f} Loss:{:0.4f} mIOU{miou:0.4f}'
+            print(('Training Epoch:{epoch} [{trained_samples}/{total_samples}] '
+                    'Lr:{lr:0.6f} Loss:{:0.4f} mIOU{miou:0.4f} '
                     'Recall:{recall:0.4f} Precision:{precision:0.4f}').format(
                 loss.item(),
                 epoch=epoch,
@@ -179,7 +179,8 @@ if __name__ == '__main__':
                 loss = loss_fn(preds, masks)
                 test_loss += loss.item()
 
-                images = images.view(-1).cpu().data.numpy()
+                preds = preds.argmax(dim=1)
+                preds = preds.view(-1).cpu().data.numpy()
                 masks = masks.view(-1).cpu().data.numpy()
                 metrics.add(images, masks)
                 n_iter = (epoch - 1) * iter_per_epoch + batch_idx + 1
