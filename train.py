@@ -157,7 +157,7 @@ if __name__ == '__main__':
                 epoch=epoch,
                 trained_samples=batch_idx * args.b + len(images),
                 total_samples=len(train_dataset),
-                miou=iou,
+                miou=miou,
                 recall=recall,
                 precision=precision,
                 lr=optimizer.param_groups[0]['lr']
