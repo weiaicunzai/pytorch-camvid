@@ -13,7 +13,6 @@ from conf import settings
 
 from lr_scheduler import WarmUpLR
 from dataset.camvid import CamVid
-#from utils import Metrics
 from metrics import Metrics
 
 
@@ -21,7 +20,7 @@ from metrics import Metrics
 if __name__ == '__main__':
 
     parser = argparse.ArgumentParser()
-    parser.add_argument('-b', type=int, default=12,
+    parser.add_argument('-b', type=int, default=5,
                         help='batch size for dataloader')
     parser.add_argument('-lr', type=float, default=0.1,
                         help='initial learning rate')
