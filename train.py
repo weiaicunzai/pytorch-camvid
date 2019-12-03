@@ -46,7 +46,7 @@ if __name__ == '__main__':
 
     valid_transforms = transforms.Compose([
         transforms.Resize(settings.IMAGE_SIZE),
-        transforms.ToTensor()
+        transforms.ToTensor(),
         transforms.Normalize(settings.MEAN, settings.STD)
     ])
 

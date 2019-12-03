@@ -15,7 +15,7 @@ TIME_NOW = datetime.now().isoformat()
 #save weights file per SAVE_EPOCH epoch
 SAVE_EPOCH = 10
 
-DATA_PATH = 'camvid'
+DATA_PATH = 'drive/My Drive/dataset/camvid'
 
 IMAGE_SIZE = 512
 
