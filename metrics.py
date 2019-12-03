@@ -1,4 +1,6 @@
 
+import statistics
+
 import numpy as np
 from sklearn.metrics import confusion_matrix
 
@@ -38,7 +40,7 @@ class Metrics:
         if self.ignore_index:
             precision = [precision[i] for i in range(self.class_num) if i != self.ignore_index]
         if average:
-            precision = precision.mean()
+            precision = statistics.mean(precision)
 
         return precision
 
@@ -48,7 +50,7 @@ class Metrics:
         if self.ignore_index:
             recall = [recall[i] for i in range(self.class_num) if i != self.class_num]
         if average:
-            recall = recall.mean()
+            recall = statistics.mean(recall)
 
         return recall
 
