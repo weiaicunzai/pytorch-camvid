@@ -34,7 +34,9 @@ class Metrics:
 
     def precision(self, average=True):
         
-        precision = self._confusion_matrix.sum(axis=0)
+        cm = self._confusion_matrix
+        precision = np.diag(cm) / cm.sum(axis=0)
+
         if self.ignore_index:
             precision_mask = [i for i in range(self.class_num) if i != self.ignore_index]
             precision = precision[precision_mask]
@@ -44,7 +46,9 @@ class Metrics:
         return precision
 
     def recall(self, average=True):
-        recall = self._confusion_matrix.sum(axis=1)
+
+        cm = self._confusion_matrix
+        recall = np.diag(cm) / cm.sum(axis=1)
 
         if self.ignore_index:
             recall_mask = [i for i in range(self.class_num) if i != self.ignore_index]
@@ -56,13 +60,10 @@ class Metrics:
 
     def iou(self, average=True):
 
-        recall = self.recall(average=False)
-        precision = self.precision(average=False)
         cm = self._confusion_matrix
-        tp = np.diag(cm)
-        tp_mask = [i for i in range(self.class_num) if i != self.ignore_index]
-        tp = tp[tp_mask]
-        iou = tp / (recall + precision + tp + 1e-8)
+        iou = np.diag(cm) / (cm.sum(axis=1) + cm.sum(axis=0) - np.diag(cm) + 1e-15)
+        iou_mask = [i for i in range(self.class_num) if i != self.ignore_index]
+        iou = iou[tp_mask]
 
         if average:
             iou = iou.mean()
