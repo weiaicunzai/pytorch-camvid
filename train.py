@@ -140,7 +140,7 @@ if __name__ == '__main__':
 
             optimizer.step()
 
-            images = images.view(-1).cpu().data.numpy()
+            preds = preds.view(-1).cpu().data.numpy()
             masks = masks.view(-1).cpu().data.numpy()
             metrics.add(preds, masks)
 
