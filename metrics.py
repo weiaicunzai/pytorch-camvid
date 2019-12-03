@@ -39,7 +39,7 @@ class Metrics:
             precision_mask = [i for i in range(self.class_num) if i != self.ignore_index]
             precision = precision[precision_mask]
         if average:
-            precision = precision.mean(precision)
+            precision = precision.mean()
 
         return precision
 
@@ -50,7 +50,7 @@ class Metrics:
             recall_mask = [i for i in range(self.class_num) if i != self.class_num]
             recall = recall[recall_mask]
         if average:
-            recall = recall.mean(recall)
+            recall = recall.mean()
 
         return recall
 
