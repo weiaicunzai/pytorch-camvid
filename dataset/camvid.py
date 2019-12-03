@@ -40,7 +40,6 @@ class CamVid(Dataset):
         else:
             raise ValueError('data_type should be one of train, val')
 
-
     def __getitem__(self, index):
         
         image_name = self.image_names[index]
@@ -51,7 +50,7 @@ class CamVid(Dataset):
         label = cv2.imread(label_path, 0)
 
         if self.transforms:
-            image, label = self.transforms(iamge, label)
+            image, label = self.transforms(image, label)
 
         return image, label
 
