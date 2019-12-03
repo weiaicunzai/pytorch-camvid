@@ -3,7 +3,7 @@ import numpy as np
 from sklearn.metrics import confusion_matrix
 
 
-class Metric:
+class Metrics:
 
     def __init__(self, class_num, ignore_index=None):
         """compute imou for pytorch segementation task
@@ -41,6 +41,7 @@ class Metric:
             precision = precision.mean()
 
         return precision
+
     def recall(self, average=True):
         recall = self._confusion_matrix.sum(axis=1)
 
