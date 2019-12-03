@@ -59,7 +59,7 @@ class Metrics:
         recall = self.recall(average=False)
         precision = self.precision(average=False)
         cm = self._confusion_matrix
-        iou = cm.diag() / (recall + precision + cm.diag() + 1e-8)
+        iou = np.diag(cm) / (recall + precision + np.diag(cm) + 1e-8)
 
         if average:
             iou = iou.mean()
