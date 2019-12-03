@@ -79,7 +79,7 @@ if __name__ == '__main__':
     train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=args.b)
     validation_loader = torch.utils.data.DataLoader(valid_dataset, batch_size=args.b)
 
-    net = UNet(3, settings.CLASS_NUMBER)
+    net = UNet(3, settings.CLASS_NUM)
     net = net.cuda()
 
     optimizer = optim.SGD(net.parameters(), lr=args.lr,
