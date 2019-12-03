@@ -40,25 +40,14 @@ class Resize:
         interpolation: Default: cv2.INTER_LINEAR: 
     """
 
-    def __init__(self, size, scale=(0.08, 1.0), ratio=(3.0 / 4.0, 4.0 / 3.0), interpolation='linear'):
-
-        self.methods={
-            "area":cv2.INTER_AREA, 
-            "nearest":cv2.INTER_NEAREST, 
-            "linear" : cv2.INTER_LINEAR, 
-            "cubic" : cv2.INTER_CUBIC, 
-            "lanczos4" : cv2.INTER_LANCZOS4
-        }
+    def __init__(self, size):
 
         self.size = (size, size)
-        self.interpolation = self.methods[interpolation]
-        self.scale = scale
-        self.ratio = ratio
 
     def __call__(self, img, mask):
 
-        resized_img = cv2.resize(img, self.size, interpolation=self.interpolation)
-        resized_mask = cv2.resize(mask, self.size, interpolation=self.interpolation)
+        resized_img = cv2.resize(img, self.size)
+        resized_mask = cv2.resize(mask, self.size, interpolation=cv2.INTER_NEAREST)
 
         return resized_img, resized_mask
 
@@ -157,7 +146,7 @@ class ColorJitter:
         hue: same as brightness
     """
 
-    def __init__(self, brightness=0, contrast=0, saturation=0, hue=0):
+    def __init__(self, brightness=0.4, contrast=0.4, saturation=0.4, hue=0.4):
         self.brightness = self._check_input(brightness)
         self.contrast = self._check_input(contrast)
         self.saturation = self._check_input(saturation)
