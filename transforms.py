@@ -225,8 +225,7 @@ class ToTensor:
         img = torch.from_numpy(img)
         img = img.float() / 255.0
 
-        mask = torch.from_numpy(mask)
-        mask = mask.float()
+        mask = torch.from_numpy(mask).long()
 
         return img, mask
 
