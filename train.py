@@ -135,6 +135,7 @@ if __name__ == '__main__':
             #loss_pos = loss_fn(preds_pos, gt_pos)
             #loss_neg = loss_fn(preds_neg, gt_neg)
             #loss = 0.4 * loss_neg + loss_pos
+            loss = loss_fn(preds, masks)
             loss.backward()
 
             optimizer.step()
