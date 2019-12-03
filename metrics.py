@@ -37,7 +37,7 @@ class Metrics:
         precision = self._confusion_matrix.sum(axis=0)
         if self.ignore_index:
             precision = [precision[i] for i in range(self.class_num) if i != self.ignore_index]
-        if self.average:
+        if average:
             precision = precision.mean()
 
         return precision
@@ -47,7 +47,7 @@ class Metrics:
 
         if self.ignore_index:
             recall = [recall[i] for i in range(self.class_num) if i != self.class_num]
-        if self.average:
+        if average:
             recall = recall.eman()
 
         return recall
