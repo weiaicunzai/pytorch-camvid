@@ -26,7 +26,6 @@ if __name__ == '__main__':
                         help='initial learning rate')
     parser.add_argument('-e', type=int, default=150, help='training epoches')
     parser.add_argument('-warm', type=int, default=5, help='warm up phase')
-    #parser.add_argument('-c', type=int, default=2, help='number of class')
 
     args = parser.parse_args()
 
