@@ -1,6 +1,4 @@
 
-import statistics
-
 import numpy as np
 from sklearn.metrics import confusion_matrix
 
@@ -38,9 +36,10 @@ class Metrics:
         
         precision = self._confusion_matrix.sum(axis=0)
         if self.ignore_index:
-            precision = [precision[i] for i in range(self.class_num) if i != self.ignore_index]
+            precision_mask = [i for i in range(self.class_num) if i != self.ignore_index]
+            precision = precision[precision_mask]
         if average:
-            precision = statistics.mean(precision)
+            precision = precision.mean(precision)
 
         return precision
 
@@ -48,9 +47,10 @@ class Metrics:
         recall = self._confusion_matrix.sum(axis=1)
 
         if self.ignore_index:
-            recall = [recall[i] for i in range(self.class_num) if i != self.class_num]
+            recall_mask = [i for i in range(self.class_num) if i != self.class_num]
+            recall = recall[recall_mask]
         if average:
-            recall = statistics.mean(recall)
+            recall = recall.mean(recall)
 
         return recall
 
@@ -59,7 +59,10 @@ class Metrics:
         recall = self.recall(average=False)
         precision = self.precision(average=False)
         cm = self._confusion_matrix
-        iou = np.diag(cm) / (recall + precision + np.diag(cm) + 1e-8)
+        tp = np.diag(cm)
+        tp_mask = [i for i in range(self.class_num) if i != self.ignore_index]
+        tp = tp[tp_mask]
+        iou = tp / (recall + precision + tp + 1e-8)
 
         if average:
             iou = iou.mean()
