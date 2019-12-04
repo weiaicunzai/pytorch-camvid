@@ -29,7 +29,8 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
 
-    checkpoint_path = os.path.join(settings.CHECKPOINT_PATH, settings.TIME_NOW)
+    root_path = os.path.dirname(os.path.abspath(__file__))
+    checkpoint_path = os.path.join(root_path, settings.CHECKPOINT_FOLDER, settings.TIME_NOW)
 
     if not os.path.exists(checkpoint_path):
         os.makedirs(checkpoint_path)
@@ -199,7 +200,7 @@ if __name__ == '__main__':
 
         print(eval_msg.format(
             loss=test_loss / len(valid_dataset),
-            miou=miou
+            miou=miou,
             recall=recall,
             precision=precision
         ))

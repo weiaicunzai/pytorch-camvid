@@ -30,7 +30,7 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
 
-    checkpoint_path = os.path.join(settings.CHECKPOINT_PATH, settings.TIME_NOW)
+    checkpoint_path = os.path.join(settings.CHECKPOINT_FOLDER, settings.TIME_NOW)
 
     if not os.path.exists(checkpoint_path):
         os.makedirs(checkpoint_path)
