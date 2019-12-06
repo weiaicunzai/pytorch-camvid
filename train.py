@@ -1,21 +1,21 @@
-import os
 import argparse
+import os
+import sys
+
+import cv2
 import torch
 import torch.nn as nn
 import torch.optim as optim
-import cv2
-import sys
+from torch.utils.data.sampler import SubsetRandomSampler
+from torch.utils.tensorboard import SummaryWriter
 
 import transforms
-from model import UNet
-from torch.utils.data.sampler import SubsetRandomSampler
+import utils
 from conf import settings
-
-from lr_scheduler import WarmUpLR
 from dataset.camvid import CamVid
+from lr_scheduler import WarmUpLR
 from metrics import Metrics
-
-
+from model import UNet
 
 if __name__ == '__main__':
 
@@ -26,55 +26,46 @@ if __name__ == '__main__':
                         help='initial learning rate')
     parser.add_argument('-e', type=int, default=150, help='training epoches')
     parser.add_argument('-warm', type=int, default=5, help='warm up phase')
-
     args = parser.parse_args()
 
     root_path = os.path.dirname(os.path.abspath(__file__))
-    checkpoint_path = os.path.join(root_path, settings.CHECKPOINT_FOLDER, settings.TIME_NOW)
+
+    checkpoint_path = os.path.join(
+        root_path, settings.CHECKPOINT_FOLDER, settings.TIME_NOW)
+    log_dir = os.path.join(root_path, settings.LOG_FOLDER, settings.TIME_NOW)
 
     if not os.path.exists(checkpoint_path):
         os.makedirs(checkpoint_path)
     checkpoint_path = os.path.join(checkpoint_path, '{epoch}-{type}.pth')
+
+    writer = SummaryWriter(log_dir=log_dir)
 
     train_transforms = transforms.Compose([
         transforms.RandomResizedCrop(settings.IMAGE_SIZE),
         transforms.RandomHorizontalFlip(),
         transforms.ColorJitter(),
         transforms.ToTensor(),
-        transforms.Normalize(settings.MEAN, settings.STD)
+        transforms.Normalize(settings.MEAN, settings.STD),
     ])
 
     valid_transforms = transforms.Compose([
         transforms.Resize(settings.IMAGE_SIZE),
         transforms.ToTensor(),
-        transforms.Normalize(settings.MEAN, settings.STD)
+        transforms.Normalize(settings.MEAN, settings.STD),
     ])
 
-    #train_dataset = TableBorder(
-    #    settings.DATA_PATH, transforms=train_transforms)
-    #valid_dataset = TableBorder(
-    #    settings.DATA_PATH, transforms=train_transforms)
-
-    #split = int(0.2 * len(train_dataset))
-
-    #indices = list(range(len(valid_dataset)))
-    #train_indices, val_indices = indices[split:], indices[:split]
-    #print(val_indices)
-
-    #train_sampler = SubsetRandomSampler(train_indices)
-    #valid_sampler = SubsetRandomSampler(val_indices)
 
     train_dataset = CamVid(
         settings.DATA_PATH, 
         settings.CLASS_NUM, 
         'train',
-        transforms=train_transforms
+        transforms=train_transforms,
     )
     valid_dataset = CamVid(
         settings.DATA_PATH, 
         settings.CLASS_NUM, 
         'val',
-        transforms=train_transforms
+        transforms=train_transforms,
     )
 
     train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=args.b)
@@ -83,6 +74,9 @@ if __name__ == '__main__':
     net = UNet(3, settings.CLASS_NUM)
     net = net.cuda()
 
+    tensor = torch.Tensor(1, 3, *[settings.IMAGE_SIZE] * 2)
+    utils.visualize_network(writer, net, tensor)
+    
     optimizer = optim.SGD(net.parameters(), lr=args.lr,
                           momentum=0.9, weight_decay=1e-4, nesterov=True)
     iter_per_epoch = len(train_dataset) / args.b
@@ -107,35 +101,12 @@ if __name__ == '__main__':
             if epoch <= args.warm:
                 warmup_scheduler.step()
 
-            images = images.cuda()
-            masks = masks.cuda()
-
-
             optimizer.zero_grad()
 
+            images = images.cuda()
+            masks = masks.cuda()
             preds = net(images)
 
-            #metric = Metrics(preds.clone(), masks.clone())
-            #recall = metric.recall()
-            #recall = torch.stack(recall, dim=0)
-            #recall = torch.mean(recall)
-
-            #precision = metric.precision()
-            #precision = torch.stack(precision, dim=0)
-            #precision = torch.mean(precision)
-
-            #gt_pos_mask = masks == 1
-            #gt_neg_mask = masks == 0
-
-            #preds_pos = preds[gt_pos_mask]
-            #preds_neg = preds[gt_neg_mask]
-
-            #gt_pos = masks[gt_pos_mask]
-            #gt_neg = masks[gt_neg_mask]
-
-            #loss_pos = loss_fn(preds_pos, gt_pos)
-            #loss_neg = loss_fn(preds_neg, gt_neg)
-            #loss = 0.4 * loss_neg + loss_pos
             loss = loss_fn(preds, masks)
             loss.backward()
 
@@ -144,8 +115,8 @@ if __name__ == '__main__':
             preds = preds.argmax(dim=1)
             preds = preds.view(-1).cpu().data.numpy()
             masks = masks.view(-1).cpu().data.numpy()
-            metrics.add(preds, masks)
 
+            metrics.add(preds, masks)
             recall = metrics.recall()
             precision = metrics.precision()
             miou = metrics.iou()
@@ -161,11 +132,36 @@ if __name__ == '__main__':
                 miou=miou,
                 recall=recall,
                 precision=precision,
-                lr=optimizer.param_groups[0]['lr']
+                lr=optimizer.param_groups[0]['lr'],
             ))
 
             metrics.clear()
+            utils.visualize_scalar(
+                writer,
+                'Train/Loss',
+                loss.item(),
+                n_iter,
+            )
+            utils.visulaize_lastlayer(
+                writer,
+                net,
+                n_iter,
+            )
+            utils.visualize_scalar(
+                writer,
+                'Train/mIOU',
+                miou,
+                n_iter,
+            )
 
+        utils.visualize_scalar(
+            writer, 
+            'Train/LearningRate', 
+            optimizer.param_groups[0]['lr'], 
+            epoch,
+        )
+
+        utils.visualize_param_hist(writer, net, epoch)
         net.eval()
         test_loss = 0.0
 
@@ -191,6 +187,20 @@ if __name__ == '__main__':
         recall = metrics.recall()
         metrics.clear()
 
+        utils.visualize_scalar(
+            writer,
+            'Test/mIOU',
+            miou,
+            epoch,
+        )
+
+        utils.visualize_scalar(
+            writer,
+            'Test/Loss',
+            test_loss / len(valid_dataset),
+            epoch,
+        )
+
         eval_msg = (
             'Test set Average loss: {loss:.4f}, '
             'mIOU: {miou:.4f}, '
@@ -214,8 +224,3 @@ if __name__ == '__main__':
         if not epoch % settings.SAVE_EPOCH:
             torch.save(net.state_dict(),
                             checkpoint_path.format(epoch=epoch, type='regular'))
-
-
-
-
-

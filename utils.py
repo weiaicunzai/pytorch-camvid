@@ -1,6 +1,49 @@
 
-import torch
+import os
+
 import numpy as np
+import torch
+
+
+@torch.no_grad()
+def visualize_network(writer, net, tensor):
+    tensor = tensor.to(next(net.parameters).device)
+    writer.add_graph(net, tensor)
+
+def _get_lastlayer_params(net):
+    """get last trainable layer of a net
+    Args:
+        network architectur
+    
+    Returns:
+        last layer weights and last layer bias
+    """
+    last_layer_weights = None
+    last_layer_bias = None
+    for name, para in net.named_parameters():
+        if 'weight' in name:
+            last_layer_weights = para
+        if 'bias' in name:
+            last_layer_bias = para
+        
+    return last_layer_weights, last_layer_bias
+
+def visulaize_lastlayer(writer, net, n_iter):
+    weights, bias = _get_lastlayer_params(net)
+    writer.add_scalar('LastLayerGradients/grad_norm2_weights', weights.grad.norm(), n_iter)
+    writer.add_scalar('LastLayerGradients/grad_norm2_bias', bias.grad.norm(), n_iter)
+
+def visualize_scalar(writer, name, scalar, n_iter):
+    """visualize scalar"""
+    writer.add_scaler(name, scalar, n_iter)
+
+
+def visualize_param_hist(writer, net, n_iter):
+    """visualize histogram of params"""
+    for name, param in net.named_parameters():
+        layer, attr = os.path.splitext(name)
+        attr = attr[1:]
+        writer.add_histogram("{}/{}".format(layer, attr), param, n_iter)
 
 #class Metrics:
 #    """evaluate predictions, supported metrics: mIOU, F1, presicion,
@@ -206,4 +249,5 @@ def compute_mean_and_std(dataset):
     mean = (mean_b.item() / 255.0, mean_g.item() / 255.0, mean_r.item() / 255.0)
     std = (std_b.item() / 255.0, std_g.item() / 255.0, std_r.item() / 255.0)
     return mean, std
+
 
