@@ -35,7 +35,7 @@ def visulaize_lastlayer(writer, net, n_iter):
 
 def visualize_scalar(writer, name, scalar, n_iter):
     """visualize scalar"""
-    writer.add_scaler(name, scalar, n_iter)
+    writer.add_scalar(name, scalar, n_iter)
 
 
 def visualize_param_hist(writer, net, n_iter):
