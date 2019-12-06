@@ -7,7 +7,7 @@ import torch
 
 @torch.no_grad()
 def visualize_network(writer, net, tensor):
-    tensor = tensor.to(next(net.parameters).device)
+    tensor = tensor.to(next(net.parameters()).device)
     writer.add_graph(net, tensor)
 
 def _get_lastlayer_params(net):

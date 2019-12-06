@@ -38,6 +38,9 @@ if __name__ == '__main__':
         os.makedirs(checkpoint_path)
     checkpoint_path = os.path.join(checkpoint_path, '{epoch}-{type}.pth')
 
+    if not os.path.exists(log_dir):
+        os.makedirs(log_dir)
+
     writer = SummaryWriter(log_dir=log_dir)
 
     train_transforms = transforms.Compose([
@@ -83,8 +86,6 @@ if __name__ == '__main__':
     warmup_scheduler = WarmUpLR(optimizer, iter_per_epoch * args.warm)
     train_scheduler = optim.lr_scheduler.MultiStepLR(
         optimizer, milestones=settings.MILESTONES)
-    #loss_fn = nn.BCELoss()
-    #loss_fn = nn.MSELoss()
     loss_fn = nn.CrossEntropyLoss()
 
 
