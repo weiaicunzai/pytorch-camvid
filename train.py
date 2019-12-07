@@ -60,21 +60,21 @@ if __name__ == '__main__':
 
     train_dataset = CamVid(
         settings.DATA_PATH, 
-        settings.CLASS_NUM, 
         'train',
         transforms=train_transforms,
     )
     valid_dataset = CamVid(
         settings.DATA_PATH, 
-        settings.CLASS_NUM, 
         'val',
         transforms=train_transforms,
     )
 
-    train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=args.b)
-    validation_loader = torch.utils.data.DataLoader(valid_dataset, batch_size=args.b)
+    train_loader = torch.utils.data.DataLoader(
+        train_dataset, batch_size=args.b, num_workers=2)
+    validation_loader = torch.utils.data.DataLoader(
+        valid_dataset, batch_size=args.b, num_workers=2)
 
-    net = UNet(3, settings.CLASS_NUM)
+    net = UNet(3, train_dataset.class_num)
     net = net.cuda()
 
     tensor = torch.Tensor(1, 3, *[settings.IMAGE_SIZE] * 2)

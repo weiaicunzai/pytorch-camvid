@@ -5,18 +5,16 @@ from torch.utils.data import Dataset
 import numpy as np
 
 class CamVid(Dataset):
-    def __init__(self, data_path, class_num, data_type='train', transforms=None):
+    def __init__(self, data_path, data_type='train', transforms=None):
         """
         Camvid dataset:https://course.fast.ai/datasets
 
         Args:
             data_path: path to dataset folder
-            class_num: number of classes
             data_type: train datset or validation dataset, 'train', or 'val'
             transforms: data augmentations
         """
 
-        self.class_num = class_num
         self.data_type = data_type
         self.data_path = data_path
         self.transforms = transforms
@@ -39,6 +37,8 @@ class CamVid(Dataset):
             self.image_names = list(valid)
         else:
             raise ValueError('data_type should be one of train, val')
+
+        self.class_num = len(codes)
 
     def __getitem__(self, index):
         
