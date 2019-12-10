@@ -8,6 +8,7 @@ class CamVid(Dataset):
     def __init__(self, data_path, data_type='train', transforms=None):
         """
         Camvid dataset:https://course.fast.ai/datasets
+        or simply wget https://s3.amazonaws.com/fast-ai-imagelocal/camvid.tgz
 
         Args:
             data_path: path to dataset folder
