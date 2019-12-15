@@ -75,8 +75,8 @@ def get_test_dataloader(data_path, image_size, batch_size, mean, std):
 def train_loop_fn(net, train_loader, device, context):
 
     loss_fn = nn.CrossEntropyLoss()
-    optimizer = optim.SGD(net.parameters(), lr=args.lr,
-                        momentum=0.9, weight_decay=1e-4, nesterov=True)
+    #optimizer = optim.SGD(net.parameters(), lr=args.lr,
+    #                    momentum=0.9, weight_decay=1e-4, nesterov=True)
 
     optimizer = context.getattr_or(
         'optimizer',
@@ -84,44 +84,40 @@ def train_loop_fn(net, train_loader, device, context):
                         momentum=0.9, weight_decay=1e-4, nesterov=True)
     )
 
-    warmup_scheduler = WarmUpLR(optimizer, iter_per_epoch * args.warm)
+    #warmup_scheduler = WarmUpLR(optimizer, iter_per_epoch * args.warm)
 
-    warm_scheduler = context.getattr_or(
-        'warm_scheduler',
-        lambda: warmup_scheduler,
-    )
+    #warm_scheduler = context.getattr_or(
+    #    'warm_scheduler',
+    #    lambda: warmup_scheduler,
+    #)
 
-    train_scheduler = context.getattr_or(
-        'train_scheduler',
-        lambda: optim.lr_scheduler.MultiStepLR(
-            optimizer, milestones=settings.MILESTONES)
-    )
-
-
-    metrics = Metrics(settings.CLASS_NUM, Flag['ignore_idx'])
-
-    best_iou = 0
+    #train_scheduler = context.getattr_or(
+    #    'train_scheduler',
+    #    lambda: optim.lr_scheduler.MultiStepLR(
+    #        optimizer, milestones=settings.MILESTONES)
+    #)
 
     net.train()
-    ious = 0
 
     for batch_idx, (images, masks) in enumerate(train_loader):
 
-        if warm_scheduler.last_epoch <= iter_per_epoch * args.warm:
-            warmup_scheduler.step()
+        #if warm_scheduler.last_epoch <= iter_per_epoch * args.warm:
+        #    warmup_scheduler.step()
 
         optimizer.zero_grad()
+        print(images.shape)
         preds = net(images)
         loss = loss_fn(preds, masks)
 
         loss.backward()
         xm.optimizer_step(optimizer)
 
-        print('Device: {device}, loss: {loss:0.4f}, lr: {lr:0.6f}'.format(
-            device=device,
-            loss=loss,
-            lr=optimizer.param_groups[0]['lr'],
-        ))
+        #print('Epoch: {epoch}, device: {device}, loss: {loss:0.4f}, lr: {lr:0.6f}'.format(
+        #    epoch=epoch,
+        #    device=device,
+        #    loss=loss,
+        #    lr=optimizer.param_groups[0]['lr'],
+        #))
 
         #with torch.no_grad():  
         #    preds = preds.argmax(dim=1)
@@ -142,11 +138,11 @@ def train_loop_fn(net, train_loader, device, context):
         #       )
         #)
 
-    if warm_scheduler.last_epoch > iter_per_epoch * args.warm:
-        if train_scheduler.last_epoch < args.warm:
-            train_scheduler.step(args.warm)
+    #if warm_scheduler.last_epoch > iter_per_epoch * args.warm:
+    #    if train_scheduler.last_epoch < args.warm:
+    #        train_scheduler.step(args.warm)
 
-        train_scheduler.step()
+    #    train_scheduler.step()
 
 def test_loop_fn(net, test_loader, device, context):
     loss_fn = nn.CrossEntropyLoss()
@@ -156,6 +152,7 @@ def test_loop_fn(net, test_loader, device, context):
     mask_res = []
     total_loss = 0
     count = 0
+    net.eval()
     with torch.no_grad():
         for batch_idx, (images, masks) in enumerate(test_loader):
 
@@ -218,40 +215,42 @@ if __name__ == '__main__':
     for epoch in range(1, args.e + 1):
         print('training epoch {}'.format(epoch)) 
         t1 = time.time()
+
         net(train_loop_fn, train_data_loader)
+
         print(time.time() - t1)
 
-        result = net(test_loop_fn, test_data_loader)
-        pred_res = np.array([res[0] for res in result])
-        mask_res = np.array([res[1] for res in result])
-        loss = np.array([res[2] for res in result])
+        #result = net(test_loop_fn, test_data_loader)
+        #pred_res = np.array([res[0] for res in result])
+        #mask_res = np.array([res[1] for res in result])
+        #loss = np.array([res[2] for res in result])
 
-        t1 = time.time()
-        metrics = Metrics(settings.CLASS_NUM, train_data_loader.dataset.ignore_index)
-        pred_res = np.array(pred_res).reshape(-1)
-        mask_res = np.array(mask_res).reshape(-1)
-        loss = np.array(loss).reshape(-1)
-        metrics.add(pred_res, mask_res)
-        miou = metrics.iou()
+        #t1 = time.time()
+        #metrics = Metrics(settings.CLASS_NUM, train_data_loader.dataset.ignore_index)
+        #pred_res = np.array(pred_res).reshape(-1)
+        #mask_res = np.array(mask_res).reshape(-1)
+        #loss = np.array(loss).reshape(-1)
+        #metrics.add(pred_res, mask_res)
+        #miou = metrics.iou()
 
-        loss = loss.mean()
-        print("Test: miou: {miou:4f} loss: {loss:4f} evaluate time: {time:4f}".format(
-            miou=miou,
-            loss=loss,
-            time=time.time() - t1,
-        ))
+        #loss = loss.mean()
+        #print("Test: miou: {miou:4f} loss: {loss:4f} evaluate time: {time:4f}".format(
+        #    miou=miou,
+        #    loss=loss,
+        #    time=time.time() - t1,
+        #))
 
-        if best_iou < miou and epoch > settings.MILESTONES[-1]:
-            state_dict = net.models[0].to('cpu').state_dict()
-            best_iou = miou
-            torch.save(state_dict,
-                            checkpoint_path.format(epoch=epoch, type='best'))
-            continue
+        #if best_iou < miou and epoch > settings.MILESTONES[-1]:
+        #    state_dict = net.models[0].to('cpu').state_dict()
+        #    best_iou = miou
+        #    torch.save(state_dict,
+        #                    checkpoint_path.format(epoch=epoch, type='best'))
+        #    continue
 
-        if not epoch % settings.SAVE_EPOCH:
-            state_dict = net.models[0].to('cpu').state_dict()
-            torch.save(state_dict,
-                            checkpoint_path.format(epoch=epoch, type='regular'))
+        #if not epoch % settings.SAVE_EPOCH:
+        #    state_dict = net.models[0].to('cpu').state_dict()
+        #    torch.save(state_dict,
+        #                    checkpoint_path.format(epoch=epoch, type='regular'))
 
 
 
