@@ -1,6 +1,7 @@
 import argparse
 import os
 import sys
+import time
 
 import cv2
 import torch
@@ -92,6 +93,7 @@ if __name__ == '__main__':
     metrics = Metrics(settings.CLASS_NUM, train_dataset.ignore_index)
     best_iou = 0 
     for epoch in range(1, args.e + 1):
+        start = time.time()
         if epoch > args.warm:
             train_scheduler.step(epoch)
 
@@ -113,45 +115,19 @@ if __name__ == '__main__':
 
             optimizer.step()
 
-            preds = preds.argmax(dim=1)
-            preds = preds.view(-1).cpu().data.numpy()
-            masks = masks.view(-1).cpu().data.numpy()
-
-            metrics.add(preds, masks)
-            recall = metrics.recall()
-            precision = metrics.precision()
-            miou = metrics.iou()
-
-            n_iter = (epoch - 1) * iter_per_epoch + batch_idx + 1
             print(('Training Epoch:{epoch} [{trained_samples}/{total_samples}] '
-                    'Lr:{lr:0.6f} Loss:{loss:0.4f} mIOU{miou:0.4f} '
-                    'Recall:{recall:0.4f} Precision:{precision:0.4f}').format(
+                    'Lr:{lr:0.6f} Loss:{loss:0.4f} ').format(
                 loss=loss.item(),
                 epoch=epoch,
                 trained_samples=batch_idx * args.b + len(images),
                 total_samples=len(train_dataset),
-                miou=miou,
-                recall=recall,
-                precision=precision,
                 lr=optimizer.param_groups[0]['lr'],
             ))
 
-            metrics.clear()
-            utils.visualize_scalar(
-                writer,
-                'Train/Loss',
-                loss.item(),
-                n_iter,
-            )
+            n_iter = (epoch - 1) * iter_per_epoch + batch_idx + 1
             utils.visulaize_lastlayer(
                 writer,
                 net,
-                n_iter,
-            )
-            utils.visualize_scalar(
-                writer,
-                'Train/mIOU',
-                miou,
                 n_iter,
             )
 
@@ -163,6 +139,8 @@ if __name__ == '__main__':
         )
 
         utils.visualize_param_hist(writer, net, epoch)
+        print('time for training epoch {} : {}'.format(epoch, time.time() - start)) 
+
         net.eval()
         test_loss = 0.0
 
