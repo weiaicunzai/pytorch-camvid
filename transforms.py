@@ -36,9 +36,6 @@ class Resize:
     """Resize an image and an mask to given size
     Args:
         size: expected output size of each edge, can be int or iterable with (w, h)
-        scale: range of size of the origin size cropped
-        ratio: range of aspect ratio of the origin aspect ratio cropped (w / h)
-        interpolation: Default: cv2.INTER_LINEAR: 
     """
 
     def __init__(self, size):
@@ -70,6 +67,13 @@ class RandomResizedCrop:
 
     def __init__(self, size, scale=(0.08, 1.0), ratio=(3.0 / 4.0, 4.0 / 3.0), interpolation='linear'):
 
+        if isinstance(size, int):
+            self.size = (size, size)
+        elif isinstance(size, Iterable) and len(size) == 2:
+            self.size = size
+        else:
+            raise TypeError('size should be iterable with size 2 or int')
+
         self.methods={
             "area":cv2.INTER_AREA, 
             "nearest":cv2.INTER_NEAREST, 
@@ -77,8 +81,6 @@ class RandomResizedCrop:
             "cubic" : cv2.INTER_CUBIC, 
             "lanczos4" : cv2.INTER_LANCZOS4
         }
-
-        self.size = (size, size)
         self.interpolation = self.methods[interpolation]
         self.scale = scale
         self.ratio = ratio
@@ -113,7 +115,7 @@ class RandomResizedCrop:
         cropped_mask = mask[topleft_y : topleft_y + output_h, topleft_x : topleft_x + output_w]
 
         resized_img = cv2.resize(cropped_img, self.size, interpolation=self.interpolation)
-        resized_mask = cv2.resize(cropped_mask, self.size, interpolation=self.interpolation)
+        resized_mask = cv2.resize(cropped_mask, self.size, interpolation=self.methods['nearest'])
 
         return resized_img, resized_mask
 
@@ -212,6 +214,12 @@ class ColorJitter:
         img = np.clip(img, 0, 255)
 
         return img, mask
+
+trans = RandomHorizontalFlip((480, 360))
+img = np.zeros((480, 360, 3))
+mask = np.zeros((480, 360))
+
+img, mask = trans(img, mask)
 
 class ToTensor:
     """convert an opencv image (h, w, c) ndarray range from 0 to 255 to a pytorch 
