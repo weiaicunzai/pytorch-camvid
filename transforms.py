@@ -215,12 +215,6 @@ class ColorJitter:
 
         return img, mask
 
-trans = RandomHorizontalFlip((480, 360))
-img = np.zeros((480, 360, 3))
-mask = np.zeros((480, 360))
-
-img, mask = trans(img, mask)
-
 class ToTensor:
     """convert an opencv image (h, w, c) ndarray range from 0 to 255 to a pytorch 
     float tensor (c, h, w) ranged from 0 to 1, and convert mask to torch tensor
