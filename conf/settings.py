@@ -18,7 +18,7 @@ SAVE_EPOCH = 10
 
 DATA_PATH = '/content/drive/My Drive/dataset/camvid'
 
-IMAGE_SIZE = 512
+IMAGE_SIZE = (480, 360)
 
 MILESTONES = [50, 100]
 
