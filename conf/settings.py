@@ -20,7 +20,7 @@ DATA_PATH = '/content/drive/My Drive/dataset/camvid'
 
 IMAGE_SIZE = (480, 360)
 
-MILESTONES = [50, 100]
+MILESTONES = [100, 150]
 
 IGNORE_LABEL = 255
 

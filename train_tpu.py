@@ -34,7 +34,7 @@ print(met.metrics_report())
 
 def get_train_dataloader(data_path, image_size, batch_size, mean, std):
     train_transforms = transforms.Compose([
-        transforms.RandomResizedCrop(image_size),
+        transforms.Resize(image_size),
         transforms.RandomHorizontalFlip(),
         transforms.ColorJitter(),
         transforms.ToTensor(),
