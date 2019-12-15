@@ -1,6 +1,7 @@
 import random
 import math
 import numbers
+from collections.abc import Iterable
 
 import cv2
 import numpy as np
@@ -34,7 +35,7 @@ class Compose:
 class Resize:
     """Resize an image and an mask to given size
     Args:
-        size: expected output size of each edge
+        size: expected output size of each edge, can be int or iterable with (w, h)
         scale: range of size of the origin size cropped
         ratio: range of aspect ratio of the origin aspect ratio cropped (w / h)
         interpolation: Default: cv2.INTER_LINEAR: 
@@ -42,7 +43,12 @@ class Resize:
 
     def __init__(self, size):
 
-        self.size = (size, size)
+        if isinstance(size, int):
+            self.size = (size, size)
+        elif isinstance(size, Iterable) and len(size) == 2:
+            self.size = size
+        else:
+            raise TypeError('size should be iterable with size 2 or int')
 
     def __call__(self, img, mask):
 
