@@ -21,9 +21,9 @@ from model import UNet
 if __name__ == '__main__':
 
     parser = argparse.ArgumentParser()
-    parser.add_argument('-b', type=int, default=5,
+    parser.add_argument('-b', type=int, default=10,
                         help='batch size for dataloader')
-    parser.add_argument('-lr', type=float, default=0.1,
+    parser.add_argument('-lr', type=float, default=0.0005,
                         help='initial learning rate')
     parser.add_argument('-e', type=int, default=150, help='training epoches')
     parser.add_argument('-warm', type=int, default=5, help='warm up phase')
@@ -71,9 +71,9 @@ if __name__ == '__main__':
     )
 
     train_loader = torch.utils.data.DataLoader(
-        train_dataset, batch_size=args.b, num_workers=2)
+        train_dataset, batch_size=args.b, num_workers=4)
     validation_loader = torch.utils.data.DataLoader(
-        valid_dataset, batch_size=args.b, num_workers=2)
+        valid_dataset, batch_size=args.b, num_workers=4)
 
     net = UNet(3, train_dataset.class_num)
     net = net.cuda()
