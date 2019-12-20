@@ -54,26 +54,25 @@ class Resize:
 
         return resized_img, resized_mask
 
-class RandomResizedCrop:
-    """Randomly crop a rectangle region whose aspect ratio is randomly sampled 
-    in [3/4, 4/3] and area randomly sampled in [8%, 100%], then resize the cropped
-    region into a 'size' * 'size' square image.And does the same to mask
+class RandomResize:
+    """Randomly scaling an image (from 0.5 to 2.0]), output image and mask 
+    shape will be the same shape as the input image and mask. If the 
+    scaled image is larger than the input image, randomly crop the scaled
+    image.If the scaled image is smaller than the input image, pad the scaled
+    image.
+
     Args:
         size: expected output size of each edge
         scale: range of size of the origin size cropped
         ratio: range of aspect ratio of the origin aspect ratio cropped (w / h)
-        interpolation: Default: cv2.INTER_LINEAR: 
     """
 
-    def __init__(self, size, scale=(0.08, 1.0), ratio=(3.0 / 4.0, 4.0 / 3.0), interpolation='linear'):
+    def __init__(self, scale=(0.08, 1.0)):
 
-        if isinstance(size, int):
-            self.size = (size, size)
-        elif isinstance(size, Iterable) and len(size) == 2:
-            self.size = size
-        else:
+        if not isinstance(scale, Iterable) and len(size) == 2:
             raise TypeError('size should be iterable with size 2 or int')
 
+        self.size = size
         self.methods={
             "area":cv2.INTER_AREA, 
             "nearest":cv2.INTER_NEAREST, 
@@ -81,35 +80,33 @@ class RandomResizedCrop:
             "cubic" : cv2.INTER_CUBIC, 
             "lanczos4" : cv2.INTER_LANCZOS4
         }
-        self.interpolation = self.methods[interpolation]
         self.scale = scale
-        self.ratio = ratio
 
     def __call__(self, img, mask):
-        h, w, _ = img.shape
+        oh, ow, _ = img.shape
 
-        area = w * h
+        
 
-        for attempt in range(10):
-            target_area = random.uniform(*self.scale) * area
-            target_ratio = random.uniform(*self.ratio) 
+        #for attempt in range(10):
+        #    target_area = random.uniform(*self.scale) * area
+        #    target_ratio = random.uniform(*self.ratio) 
 
-            output_h = int(round(math.sqrt(target_area * target_ratio)))
-            output_w = int(round(math.sqrt(target_area / target_ratio))) 
+        #    output_h = int(round(math.sqrt(target_area * target_ratio)))
+        #    output_w = int(round(math.sqrt(target_area / target_ratio))) 
 
-            if random.random() < 0.5:
-                output_w, output_h = output_h, output_w 
+        #    if random.random() < 0.5:
+        #        output_w, output_h = output_h, output_w 
 
-            if output_w <= w and output_h <= h:
-                topleft_x = random.randint(0, w - output_w)
-                topleft_y = random.randint(0, h - output_h)
-                break
+        #    if output_w <= w and output_h <= h:
+        #        topleft_x = random.randint(0, w - output_w)
+        #        topleft_y = random.randint(0, h - output_h)
+        #        break
 
-        if output_w > w or output_h > h:
-            output_w = min(w, h)
-            output_h = output_w
-            topleft_x = random.randint(0, w - output_w) 
-            topleft_y = random.randint(0, h - output_w)
+        #if output_w > w or output_h > h:
+        #    output_w = min(w, h)
+        #    output_h = output_w
+        #    topleft_x = random.randint(0, w - output_w) 
+        #    topleft_y = random.randint(0, h - output_w)
 
         cropped_img = img[topleft_y : topleft_y + output_h, topleft_x : topleft_x + output_w]
         cropped_mask = mask[topleft_y : topleft_y + output_h, topleft_x : topleft_x + output_w]
@@ -141,6 +138,59 @@ class RandomHorizontalFlip:
             mask = cv2.flip(mask, 1)
         
         return img, mask
+
+
+class RandomGaussianBlur:
+    """Blur an image using gaussian blurring.
+
+    Args:
+       sigma: Standard deviation of the gaussian kernel.
+       Values in the range ``0.0`` (no blur) to ``3.0`` (strong blur) are
+       common. Kernel size will automatically be derived from sigma
+       p: probability of applying gaussian blur to image
+
+       https://imgaug.readthedocs.io/en/latest/_modules/imgaug/augmenters/blur.html#GaussianBlur
+    """
+
+    def __init__(self, p=0.5, sigma=(0.0, 3.0)):
+
+        if not isinstance(sigma, Iterable) and len(sigma) == 2:
+            raise TypeError('sigma should be iterable with length 2')
+
+        if not sigma[1] >= sigma[0] >= 0:
+            raise ValueError(
+                'sigma shoule be an iterval of nonegative real number')
+
+        self.sigma = sigma
+        self.p = p
+
+    def __call__(self, img, mask):
+
+        if random.random() < self.p:
+            sigma = random.uniform(*self.sigma)
+            k_size = self._compute_gaussian_blur_ksize(sigma)
+            print(k_size, k_size)
+            img = cv2.GaussianBlur(img, (k_size, k_size),
+                                   sigmaX=sigma, sigmaY=sigma)
+
+        return img, mask
+
+    @staticmethod
+    def _compute_gaussian_blur_ksize(sigma):
+        if sigma < 3.0:
+            ksize = 3.3 * sigma  # 99% of weight
+        elif sigma < 5.0:
+            ksize = 2.9 * sigma  # 97% of weight
+        else:
+            ksize = 2.6 * sigma  # 95% of weight
+
+        ksize = int(max(ksize, 3))
+
+        # kernel size needs to be an odd number
+        if not ksize % 2:
+            ksize += 1
+
+        return ksize
 
 class ColorJitter:
 
@@ -270,3 +320,13 @@ class Normalize:
         img.sub_(mean[:, None, None]).div_(std[:, None, None])
 
         return img, mask
+
+
+image = cv2.imread('camvid/images/0001TP_006690.png')
+
+trans = RandomGaussianBlur()
+
+image, _ = trans(image, image)
+
+cv2.imshow('heihei', image)
+cv2.waitKey(0)
