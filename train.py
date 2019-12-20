@@ -23,9 +23,9 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('-b', type=int, default=10,
                         help='batch size for dataloader')
-    parser.add_argument('-lr', type=float, default=0.0005,
+    parser.add_argument('-lr', type=float, default=0.05,
                         help='initial learning rate')
-    parser.add_argument('-e', type=int, default=150, help='training epoches')
+    parser.add_argument('-e', type=int, default=200, help='training epoches')
     parser.add_argument('-warm', type=int, default=5, help='warm up phase')
     args = parser.parse_args()
 
