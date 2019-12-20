@@ -64,21 +64,15 @@ class RandomScale:
     Args:
         size: expected output size of each edge
         scale: range of size of the origin size cropped
-        ratio: range of aspect ratio of the origin aspect ratio cropped (w / h)
+        value: value to fill the mask when resizing
     """
 
-    def __init__(self, scale=(0.5, 2.0)):
+    def __init__(self, scale=(0.5, 2.0), value=0):
 
         if not isinstance(scale, Iterable) and len(size) == 2:
             raise TypeError('scale should be iterable with size 2 or int')
 
-        self.methods={
-            "area":cv2.INTER_AREA, 
-            "nearest":cv2.INTER_NEAREST, 
-            "linear" : cv2.INTER_LINEAR, 
-            "cubic" : cv2.INTER_CUBIC, 
-            "lanczos4" : cv2.INTER_LANCZOS4
-        }
+        self.value = value
         self.scale = scale
 
     def __call__(self, img, mask):
@@ -112,7 +106,7 @@ class RandomScale:
             diff_w // 2,
             diff_w - diff_w // 2,
             cv2.BORDER_CONSTANT,
-            value=0
+            value=self.value
         )
 
         h, w = img.shape[:2]
@@ -124,6 +118,39 @@ class RandomScale:
         mask = mask[y1: y1 + oh, x1: x1 + ow]
 
         return img, mask
+
+class RandomRotation:
+    """Rotate the image by angle
+
+    Args:
+        angle: rotated angle
+        value: value used for filling the empty pixel after rotating
+
+    """
+
+    def __init__(self, angle=10, value=0):
+
+        if not (isinstance(angle, numbers.Number) and angle > 0):
+            raise ValueError('angle must be a positive number.')
+
+        self.angle = angle
+        self.value = value
+
+    def __call__(self, image, mask):
+
+        angle = random.uniform(-self.angle, self.angle)
+        image_center = tuple(np.array(image.shape[1::-1]) / 2)
+        rot_mat = cv2.getRotationMatrix2D(image_center, angle, 1.0)
+        image = cv2.warpAffine(
+            image, rot_mat, image.shape[1::-1])
+        mask = cv2.warpAffine(
+            mask, rot_mat, mask.shape[1::-1], 
+            flags=cv2.INTER_NEAREST, 
+            borderMode=cv2.BORDER_CONSTANT, 
+            borderValue=self.value
+        )
+
+        return image, mask
 
 class RandomHorizontalFlip:
     """Horizontally flip the given opencv image with given probability p.
@@ -329,17 +356,3 @@ class Normalize:
         img.sub_(mean[:, None, None]).div_(std[:, None, None])
 
         return img, mask
-
-
-image = cv2.imread('camvid/images/0001TP_006690.png')
-mask = cv2.imread('camvid/images/0001TP_006690.png', 0)
-
-trans = RandomScale()
-
-image, mask = trans(image, mask)
-
-print(image.shape)
-print(mask.shape)
-cv2.imshow('image', image)
-cv2.imshow('mask', mask)
-cv2.waitKey(0)
