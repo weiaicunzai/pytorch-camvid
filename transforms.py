@@ -54,9 +54,9 @@ class Resize:
 
         return resized_img, resized_mask
 
-class RandomResize:
-    """Randomly scaling an image (from 0.5 to 2.0]), output image and mask 
-    shape will be the same shape as the input image and mask. If the 
+class RandomScale:
+    """Randomly scaling an image (from 0.5 to 2.0]), the output image and mask 
+    shape will be the same as the input image and mask shape. If the 
     scaled image is larger than the input image, randomly crop the scaled
     image.If the scaled image is smaller than the input image, pad the scaled
     image.
@@ -67,12 +67,11 @@ class RandomResize:
         ratio: range of aspect ratio of the origin aspect ratio cropped (w / h)
     """
 
-    def __init__(self, scale=(0.08, 1.0)):
+    def __init__(self, scale=(0.5, 2.0)):
 
         if not isinstance(scale, Iterable) and len(size) == 2:
-            raise TypeError('size should be iterable with size 2 or int')
+            raise TypeError('scale should be iterable with size 2 or int')
 
-        self.size = size
         self.methods={
             "area":cv2.INTER_AREA, 
             "nearest":cv2.INTER_NEAREST, 
@@ -83,38 +82,48 @@ class RandomResize:
         self.scale = scale
 
     def __call__(self, img, mask):
-        oh, ow, _ = img.shape
+        oh, ow = img.shape[:2]
 
-        
+        # scale image
+        scale = random.uniform(*self.scale)
+        img = cv2.resize(img, (0, 0), fx=scale, fy=scale)
+        mask = cv2.resize(mask, (0, 0), fx=scale, fy=scale,
+                          interpolation=cv2.INTER_NEAREST)
 
-        #for attempt in range(10):
-        #    target_area = random.uniform(*self.scale) * area
-        #    target_ratio = random.uniform(*self.ratio) 
+        h, w = img.shape[:2]
 
-        #    output_h = int(round(math.sqrt(target_area * target_ratio)))
-        #    output_w = int(round(math.sqrt(target_area / target_ratio))) 
+        # pad image and mask
+        diff_h = max(0, oh - h)
+        diff_w = max(0, ow - w)
 
-        #    if random.random() < 0.5:
-        #        output_w, output_h = output_h, output_w 
+        img = cv2.copyMakeBorder(
+            img, 
+            diff_h // 2,
+            diff_h - diff_h // 2,
+            diff_w // 2,
+            diff_w - diff_w // 2,
+            cv2.BORDER_CONSTANT,
+            value=[0, 0, 0]
+        )
+        mask = cv2.copyMakeBorder(
+            mask,
+            diff_h // 2,
+            diff_h - diff_h // 2,
+            diff_w // 2,
+            diff_w - diff_w // 2,
+            cv2.BORDER_CONSTANT,
+            value=0
+        )
 
-        #    if output_w <= w and output_h <= h:
-        #        topleft_x = random.randint(0, w - output_w)
-        #        topleft_y = random.randint(0, h - output_h)
-        #        break
+        h, w = img.shape[:2]
 
-        #if output_w > w or output_h > h:
-        #    output_w = min(w, h)
-        #    output_h = output_w
-        #    topleft_x = random.randint(0, w - output_w) 
-        #    topleft_y = random.randint(0, h - output_w)
+        # crop image and mask
+        y1 = random.randint(0, h - oh)
+        x1 = random.randint(0, w - ow)
+        img = img[y1: y1 + oh, x1: x1 + ow]
+        mask = mask[y1: y1 + oh, x1: x1 + ow]
 
-        cropped_img = img[topleft_y : topleft_y + output_h, topleft_x : topleft_x + output_w]
-        cropped_mask = mask[topleft_y : topleft_y + output_h, topleft_x : topleft_x + output_w]
-
-        resized_img = cv2.resize(cropped_img, self.size, interpolation=self.interpolation)
-        resized_mask = cv2.resize(cropped_mask, self.size, interpolation=self.methods['nearest'])
-
-        return resized_img, resized_mask
+        return img, mask
 
 class RandomHorizontalFlip:
     """Horizontally flip the given opencv image with given probability p.
@@ -323,10 +332,14 @@ class Normalize:
 
 
 image = cv2.imread('camvid/images/0001TP_006690.png')
+mask = cv2.imread('camvid/images/0001TP_006690.png', 0)
 
-trans = RandomGaussianBlur()
+trans = RandomScale()
 
-image, _ = trans(image, image)
+image, mask = trans(image, mask)
 
-cv2.imshow('heihei', image)
+print(image.shape)
+print(mask.shape)
+cv2.imshow('image', image)
+cv2.imshow('mask', mask)
 cv2.waitKey(0)
