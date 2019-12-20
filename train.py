@@ -90,7 +90,7 @@ if __name__ == '__main__':
     loss_fn = nn.CrossEntropyLoss()
 
 
-    metrics = Metrics(settings.CLASS_NUM, train_dataset.ignore_index)
+    metrics = Metrics(valid_dataset.class_num, valid_dataset.ignore_index)
     best_iou = 0 
     for epoch in range(1, args.e + 1):
         start = time.time()

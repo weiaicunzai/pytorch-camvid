@@ -90,7 +90,6 @@ class UNet(nn.Module):
 
         self.output = BasicConv2d(64, class_num)
         self.maxpool = nn.MaxPool2d(2, 2)
-        self.sigmoid = nn.Sigmoid()
     
     def forward(self, x):
         """It consists of the repeated application of two 3x3 convolutions

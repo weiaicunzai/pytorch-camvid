@@ -75,8 +75,8 @@ def get_test_dataloader(data_path, image_size, batch_size, mean, std):
 def train_loop_fn(net, train_loader, device, context):
 
     loss_fn = nn.CrossEntropyLoss()
-    #optimizer = optim.SGD(net.parameters(), lr=args.lr,
-    #                    momentum=0.9, weight_decay=1e-4, nesterov=True)
+    optimizer = optim.SGD(net.parameters(), lr=args.lr,
+                        momentum=0.9, weight_decay=1e-4, nesterov=True)
 
     optimizer = context.getattr_or(
         'optimizer',
@@ -84,41 +84,45 @@ def train_loop_fn(net, train_loader, device, context):
                         momentum=0.9, weight_decay=1e-4, nesterov=True)
     )
 
-    #warmup_scheduler = WarmUpLR(optimizer, iter_per_epoch * args.warm)
+    warmup_scheduler = WarmUpLR(optimizer, iter_per_epoch * args.warm)
 
-    #warm_scheduler = context.getattr_or(
-    #    'warm_scheduler',
-    #    lambda: warmup_scheduler,
-    #)
+    warm_scheduler = context.getattr_or(
+        'warm_scheduler',
+        lambda: warmup_scheduler,
+    )
 
-    #train_scheduler = context.getattr_or(
-    #    'train_scheduler',
-    #    lambda: optim.lr_scheduler.MultiStepLR(
-    #        optimizer, milestones=settings.MILESTONES)
-    #)
+    train_scheduler = context.getattr_or(
+        'train_scheduler',
+        lambda: optim.lr_scheduler.MultiStepLR(
+            optimizer, milestones=settings.MILESTONES)
+    )
 
     net.train()
 
+    count = 0
+    total_loss = 0
     for batch_idx, (images, masks) in enumerate(train_loader):
 
-        #if warm_scheduler.last_epoch <= iter_per_epoch * args.warm:
-        #    warmup_scheduler.step()
+        count += 1
+        if warm_scheduler.last_epoch <= iter_per_epoch * args.warm:
+            warmup_scheduler.step()
 
         optimizer.zero_grad()
-        print(images.shape)
+        #print(images.shape)
         preds = net(images)
         loss = loss_fn(preds, masks)
 
         loss.backward()
         xm.optimizer_step(optimizer)
 
-        #print('Epoch: {epoch}, device: {device}, loss: {loss:0.4f}, lr: {lr:0.6f}'.format(
-        #    epoch=epoch,
-        #    device=device,
-        #    loss=loss,
-        #    lr=optimizer.param_groups[0]['lr'],
-        #))
+        print('Epoch: {epoch}, device: {device}, loss: {loss:0.4f}, lr: {lr:0.6f}'.format(
+            epoch=epoch,
+            device=device,
+            loss=loss,
+            lr=optimizer.param_groups[0]['lr'],
+        ))
 
+        total_loss += loss
         #with torch.no_grad():  
         #    preds = preds.argmax(dim=1)
         #    preds = preds.view(-1)
@@ -143,6 +147,7 @@ def train_loop_fn(net, train_loader, device, context):
     #        train_scheduler.step(args.warm)
 
     #    train_scheduler.step()
+    return total_loss / (batch_idx + 1)
 
 def test_loop_fn(net, test_loader, device, context):
     loss_fn = nn.CrossEntropyLoss()
