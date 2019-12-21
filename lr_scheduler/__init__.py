@@ -1,2 +1,2 @@
 from .WarmUpLR import WarmUpLR
-from .WarmUpLR import ExponentialLR
+from .ExponentialLR import ExponentialLR

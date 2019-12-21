@@ -1,26 +1,21 @@
 import argparse
-import os
-import sys
-import time
 
-import cv2
+import matplotlib.pyplot as plt
+import numpy as np
 import torch
 import torch.nn as nn
 import torch.optim as optim
-from torch.utils.tensorboard import SummaryWriter
 
 import transforms
-import utils
 from conf import settings
 from dataset.camvid import CamVid
-from lr_scheduler import WarmUpLR
-from metrics import Metrics
+from lr_scheduler import ExponentialLR
 from model import UNet
 
 if __name__ == '__main__':
 
     parser = argparse.ArgumentParser()
-    parser.add_argument('-b', type=int, default=10,
+    parser.add_argument('-b', type=int, default=12,
                         help='batch size for dataloader')
     parser.add_argument('-start_lr', type=float, default=1e-7,
                         help='initial learning rate')
@@ -29,6 +24,8 @@ if __name__ == '__main__':
     parser.add_argument('-stop_div', type=bool, default=True,
                         help='stops when loss diverges')
     parser.add_argument('-num_it', type=int, default=100, help='number of iterations')
+    parser.add_argument('-skip_start', type=int, default=10, help='number of batches to trim from the start')
+    parser.add_argument('-skip_end', type=int, default=5, help='number of batches to trim from the end')
     args = parser.parse_args()
 
 
@@ -48,12 +45,6 @@ if __name__ == '__main__':
         transforms.Normalize(settings.MEAN, settings.STD),
     ])
 
-    valid_transforms = transforms.Compose([
-        transforms.Resize(settings.IMAGE_SIZE),
-        transforms.ToTensor(),
-        transforms.Normalize(settings.MEAN, settings.STD),
-    ])
-
     train_dataset.transforms = train_transforms
 
     train_loader = torch.utils.data.DataLoader(
@@ -63,28 +54,28 @@ if __name__ == '__main__':
     net = net.cuda()
 
     
-    optimizer = optim.SGD(net.parameters(), lr=args.lr,
+    optimizer = optim.SGD(net.parameters(), lr=args.start_lr,
                           momentum=0.9, weight_decay=1e-4, nesterov=True)
-    iter_per_epoch = len(train_dataset) / args.b
-    warmup_scheduler = WarmUpLR(optimizer, iter_per_epoch * args.warm)
-    train_scheduler = optim.lr_scheduler.MultiStepLR(
-        optimizer, milestones=settings.MILESTONES)
+    exponetial_scheduler = ExponentialLR(optimizer, args.end_lr, args.num_it)
     loss_fn = nn.CrossEntropyLoss()
 
+    losses = []
+    lrs = []
+    stop = False
+    count = 0
 
-    metrics = Metrics(valid_dataset.class_num, valid_dataset.ignore_index)
-    best_iou = 0 
-    for epoch in range(1, args.e + 1):
-        start = time.time()
-        if epoch > args.warm:
-            train_scheduler.step(epoch)
+    for epoch in range(1, args.num_it):
+
+        if stop:
+            break
 
         net.train()
-
-        ious = 0
         for batch_idx, (images, masks) in enumerate(train_loader):
-            if epoch <= args.warm:
-                warmup_scheduler.step()
+
+            count += 1
+            if count > args.num_it:
+                stop = True
+                break
 
             optimizer.zero_grad()
 
@@ -95,93 +86,24 @@ if __name__ == '__main__':
             loss = loss_fn(preds, masks)
             loss.backward()
 
+            if torch.isnan(loss):
+                stop = True
+                break
+
             optimizer.step()
 
-            print(('Training Epoch:{epoch} [{trained_samples}/{total_samples}] '
-                    'Lr:{lr:0.6f} Loss:{loss:0.4f} ').format(
-                loss=loss.item(),
-                epoch=epoch,
-                trained_samples=batch_idx * args.b + len(images),
-                total_samples=len(train_dataset),
-                lr=optimizer.param_groups[0]['lr'],
-            ))
+            print('iteration: {}, lr: {}, loss: {}'.format(
+                count, optimizer.param_groups[0]['lr'], loss))
 
-            n_iter = (epoch - 1) * iter_per_epoch + batch_idx + 1
-            utils.visulaize_lastlayer(
-                writer,
-                net,
-                n_iter,
-            )
+            losses.append(loss)
+            lrs.append(optimizer.param_groups[0]['lr'])
 
-        utils.visualize_scalar(
-            writer, 
-            'Train/LearningRate', 
-            optimizer.param_groups[0]['lr'], 
-            epoch,
-        )
+    # plot the result
+    loss = np.numpy(losses[args.skip_start: -args.skip_end])
+    lr = np.numpy(lrs[args.skip_start: -args.skip_start])
 
-        utils.visualize_param_hist(writer, net, epoch)
-        print('time for training epoch {} : {}'.format(epoch, time.time() - start)) 
-
-        net.eval()
-        test_loss = 0.0
-
-        with torch.no_grad():
-            for batch_idx, (images, masks) in enumerate(validation_loader):
-
-                images = images.cuda()
-                masks = masks.cuda()
-
-                preds = net(images)
-
-                loss = loss_fn(preds, masks)
-                test_loss += loss.item()
-
-                preds = preds.argmax(dim=1)
-                preds = preds.view(-1).cpu().data.numpy()
-                masks = masks.view(-1).cpu().data.numpy()
-                metrics.add(preds, masks)
-                n_iter = (epoch - 1) * iter_per_epoch + batch_idx + 1
-
-        miou = metrics.iou()
-        precision = metrics.precision()
-        recall = metrics.recall()
-        metrics.clear()
-
-        utils.visualize_scalar(
-            writer,
-            'Test/mIOU',
-            miou,
-            epoch,
-        )
-
-        utils.visualize_scalar(
-            writer,
-            'Test/Loss',
-            test_loss / len(valid_dataset),
-            epoch,
-        )
-
-        eval_msg = (
-            'Test set Average loss: {loss:.4f}, '
-            'mIOU: {miou:.4f}, '
-            'recall: {recall:.4f}, '
-            'precision: {precision:.4f}'
-        )
-
-        print(eval_msg.format(
-            loss=test_loss / len(valid_dataset),
-            miou=miou,
-            recall=recall,
-            precision=precision
-        ))
-
-        if best_iou < miou and epoch > settings.MILESTONES[-1]:
-            best_iou = miou
-            torch.save(net.state_dict(),
-                            checkpoint_path.format(epoch=epoch, type='best'))
-            continue
-
-        if not epoch % settings.SAVE_EPOCH:
-            torch.save(net.state_dict(),
-                            checkpoint_path.format(epoch=epoch, type='regular'))
+    plt.plot(lr, loss)
+    plt.xscale("log")
+    plt.xlabel("Learning rate")
+    plt.ylabel("Loss")
+    plt.imsave('lr_finder.jpeg')
