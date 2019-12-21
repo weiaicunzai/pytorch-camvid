@@ -107,4 +107,4 @@ if __name__ == '__main__':
     plt.xscale("log")
     plt.xlabel("Learning rate")
     plt.ylabel("Loss")
-    plt.imsave('lr_finder.jpeg')
+    plt.savefig('lr_finder.jpeg')
