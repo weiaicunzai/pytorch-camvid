@@ -15,7 +15,7 @@ from model import UNet
 if __name__ == '__main__':
 
     parser = argparse.ArgumentParser()
-    parser.add_argument('-b', type=int, default=12,
+    parser.add_argument('-b', type=int, default=10,
                         help='batch size for dataloader')
     parser.add_argument('-start_lr', type=float, default=1e-7,
                         help='initial learning rate')
@@ -91,8 +91,9 @@ if __name__ == '__main__':
                 break
 
             optimizer.step()
+            exponetial_scheduler.step()
 
-            print('iteration: {}, lr: {}, loss: {}'.format(
+            print('iteration: {}, lr: {:08f}, loss: {:04f}'.format(
                 count, optimizer.param_groups[0]['lr'], loss))
 
             losses.append(loss)
