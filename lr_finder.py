@@ -100,8 +100,8 @@ if __name__ == '__main__':
             lrs.append(optimizer.param_groups[0]['lr'])
 
     # plot the result
-    loss = np.numpy(losses[args.skip_start: -args.skip_end])
-    lr = np.numpy(lrs[args.skip_start: -args.skip_start])
+    loss = np.array(losses[args.skip_start: -args.skip_end])
+    lr = np.array(lrs[args.skip_start: -args.skip_start])
 
     plt.plot(lr, loss)
     plt.xscale("log")
