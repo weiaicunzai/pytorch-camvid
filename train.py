@@ -44,10 +44,22 @@ if __name__ == '__main__':
 
     writer = SummaryWriter(log_dir=log_dir)
 
+    train_dataset = CamVid(
+        settings.DATA_PATH, 
+        'train'
+    )
+    valid_dataset = CamVid(
+        settings.DATA_PATH, 
+        'val'
+    )
+
     train_transforms = transforms.Compose([
-        transforms.Resize(settings.IMAGE_SIZE),
+        transforms.RandomRotation(value=train_dataset.ignore_index),
+        transforms.RandomScale(value=train_dataset.ignore_index),
+        transforms.RandomGaussianBlur(),
         transforms.RandomHorizontalFlip(),
         transforms.ColorJitter(),
+        transforms.Resize(settings.IMAGE_SIZE),
         transforms.ToTensor(),
         transforms.Normalize(settings.MEAN, settings.STD),
     ])
@@ -58,17 +70,8 @@ if __name__ == '__main__':
         transforms.Normalize(settings.MEAN, settings.STD),
     ])
 
-
-    train_dataset = CamVid(
-        settings.DATA_PATH, 
-        'train',
-        transforms=train_transforms,
-    )
-    valid_dataset = CamVid(
-        settings.DATA_PATH, 
-        'val',
-        transforms=train_transforms,
-    )
+    train_dataset.transforms = train_transforms
+    valid_dataset.transforms = valid_transforms
 
     train_loader = torch.utils.data.DataLoader(
         train_dataset, batch_size=args.b, num_workers=4)

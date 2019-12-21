@@ -64,12 +64,13 @@ class RandomScale:
     Args:
         size: expected output size of each edge
         scale: range of size of the origin size cropped
-        value: value to fill the mask when resizing
+        value: value to fill the mask when resizing,
+               should use ignore class index
     """
 
     def __init__(self, scale=(0.5, 2.0), value=0):
 
-        if not isinstance(scale, Iterable) and len(size) == 2:
+        if not isinstance(scale, Iterable) and len(scale) == 2:
             raise TypeError('scale should be iterable with size 2 or int')
 
         self.value = value
@@ -124,7 +125,8 @@ class RandomRotation:
 
     Args:
         angle: rotated angle
-        value: value used for filling the empty pixel after rotating
+        value: value used for filling the empty pixel after rotating,
+               should use ignore class index
 
     """
 
