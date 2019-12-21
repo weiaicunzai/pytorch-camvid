@@ -207,7 +207,6 @@ class RandomGaussianBlur:
         if random.random() < self.p:
             sigma = random.uniform(*self.sigma)
             k_size = self._compute_gaussian_blur_ksize(sigma)
-            print(k_size, k_size)
             img = cv2.GaussianBlur(img, (k_size, k_size),
                                    sigmaX=sigma, sigmaY=sigma)
 
