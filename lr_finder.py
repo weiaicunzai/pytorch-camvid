@@ -101,7 +101,7 @@ if __name__ == '__main__':
 
     # plot the result
     loss = np.array(losses[args.skip_start: -args.skip_end])
-    lr = np.array(lrs[args.skip_start: -args.skip_start])
+    lr = np.array(lrs[args.skip_start: -args.skip_end])
 
     plt.plot(lr, loss)
     plt.xscale("log")
