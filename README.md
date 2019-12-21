@@ -6,14 +6,14 @@ All experices run on CamVid dataset
 
 # Prepare Camvid dataset
    The [original Camvid dataset](http://mi.eng.cam.ac.uk/research/projects/VideoRec/CamVid/) have 
-   367 training, 233 testing RGB images and 101 validation images, 32 classes. We will use the
-   training and validation images as training set(468 images), and test set(233 images) as test set.
+   367 training, 233 testing images and 101 validation images, total 32 classes. We will use the
+   training and validation images as training set(468 images), and test images(233 images) as test set.
    Most image segmentation papers group the similar classes in the original Camvid dataset into one class, 
    resulting total 12 classes:
    ```
    'Sky', 'Building', 'Pole', 'Road', 'Pavement', 'Tree', 'SignSymbol', 'Fence', 'Car', 'Pedestrian', 'Bicyclist', 'Void'
    ```
-   We will do the same. The grouping stage has already been taken care of, by the code I wrote. You do not need
+   We will do the same. The group stage has already been taken care of by the code I wrote. You do not need
    to do anything about this. Here is what you need to do:
 
 1. Download Camvid dataset
