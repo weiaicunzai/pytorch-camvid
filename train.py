@@ -23,7 +23,7 @@ if __name__ == '__main__':
                         help='batch size for dataloader')
     parser.add_argument('-lr', type=float, default=0.05,
                         help='initial learning rate')
-    parser.add_argument('-e', type=int, default=200, help='training epoches')
+    parser.add_argument('-e', type=int, default=100, help='training epoches')
     parser.add_argument('-warm', type=int, default=5, help='warm up phase')
     args = parser.parse_args()
 
@@ -85,18 +85,15 @@ if __name__ == '__main__':
     optimizer = optim.SGD(net.parameters(), lr=args.lr,
                           momentum=0.9, weight_decay=1e-4, nesterov=True)
     iter_per_epoch = len(train_dataset) / args.b
-    warmup_scheduler = WarmUpLR(optimizer, iter_per_epoch * args.warm)
-    train_scheduler = optim.lr_scheduler.MultiStepLR(
-        optimizer, milestones=settings.MILESTONES)
-    loss_fn = nn.CrossEntropyLoss()
 
+    train_scheduler = optim.lr_scheduler.OneCycleLR(
+        optimizer, max_lr=1e-2, steps_per_epoch=len(train_loader), epochs=args.e)
+    loss_fn = nn.CrossEntropyLoss()
 
     metrics = Metrics(valid_dataset.class_num, valid_dataset.ignore_index)
     best_iou = 0
     for epoch in range(1, args.e + 1):
         start = time.time()
-        if epoch > args.warm:
-            train_scheduler.step(epoch)
 
         net.train()
 
@@ -115,6 +112,7 @@ if __name__ == '__main__':
             loss.backward()
 
             optimizer.step()
+            train_scheduler.step()
 
             print(('Training Epoch:{epoch} [{trained_samples}/{total_samples}] '
                     'Lr:{lr:0.6f} Loss:{loss:0.4f} ').format(
