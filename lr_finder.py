@@ -5,12 +5,103 @@ import numpy as np
 import torch
 import torch.nn as nn
 import torch.optim as optim
+from torch.utils.data import DataLoader
 
 import transforms
 from conf import settings
 from dataset.camvid import CamVid
 from lr_scheduler import ExponentialLR
 from model import UNet
+
+
+def lr_finder(train_loader: DataLoader, 
+              net: nn.Module, 
+              start_lr: float = 1e-7, 
+              end_lr: float = 10, 
+              num_it: int = 100, 
+              stop_div: bool = True):
+    """Performs the learning rate range test.
+    Arguments:
+        train_loader (torch.utils.data.DataLoader): the training set data laoder.
+        start_lr: the minimum learning rate to start: Default: 1e-7
+        end_lr (float, optional): the maximum learning rate to test. Default: 10.
+        num_iter (int, optional): the number of iterations over which the test
+            occurs. Default: 100.
+        stop_div (bool, optional): the test is stopped when the loss diverges
+
+    Returns:
+        loss (numpy.array): loss for each iteration
+        lr (numpy.array): learning rate for each iteration
+    """
+
+    optimizer = optim.SGD(net.parameters(), lr=args.start_lr,
+                          momentum=0.9, weight_decay=1e-4, nesterov=True)
+    exponetial_scheduler = ExponentialLR(optimizer, args.end_lr, args.num_it)
+    loss_fn = nn.CrossEntropyLoss()
+
+    losses = []
+    lrs = []
+    stop = False
+    count = 0
+
+    for _ in range(1, args.num_it):
+
+        if stop:
+            break
+
+        net.train()
+        for images, masks in train_loader:
+
+            count += 1
+            if count > args.num_it:
+                stop = True
+                break
+
+            optimizer.zero_grad()
+
+            images = images.cuda()
+            masks = masks.cuda()
+            preds = net(images)
+
+            loss = loss_fn(preds, masks)
+            loss.backward()
+
+            if torch.isnan(loss):
+                stop = True
+                break
+
+            optimizer.step()
+            exponetial_scheduler.step()
+
+            print('iteration: {}, lr: {:08f}, loss: {:04f}'.format(
+                count, optimizer.param_groups[0]['lr'], loss))
+
+            losses.append(loss)
+            lrs.append(optimizer.param_groups[0]['lr'])
+
+    # plot the result
+    loss = np.array(losses[args.skip_start: -args.skip_end])
+    lr = np.array(lrs[args.skip_start: -args.skip_end])
+
+    return loss, lr
+
+def plot(loss, lr, skip_start=10, skip_end=5, image_name='lr_finder.jpg'):
+    """Draw learning range test result
+
+    Args:
+        loss (numpy.array): loss data for each iteration
+        lr (numpy.array): learning rate data for each iteration
+        skip_start: number of iterations to trim from start
+        skip_end: number of iterations to trim from end
+        image_name: image path
+    """
+
+    plt.plot(lr, loss)
+    plt.xscale("log")
+    plt.xlabel("Learning rate")
+    plt.ylabel("Loss")
+    plt.savefig('lr_finder.jpeg')
+
 
 if __name__ == '__main__':
 
@@ -53,58 +144,6 @@ if __name__ == '__main__':
     net = UNet(3, train_dataset.class_num)
     net = net.cuda()
 
-    
-    optimizer = optim.SGD(net.parameters(), lr=args.start_lr,
-                          momentum=0.9, weight_decay=1e-4, nesterov=True)
-    exponetial_scheduler = ExponentialLR(optimizer, args.end_lr, args.num_it)
-    loss_fn = nn.CrossEntropyLoss()
-
-    losses = []
-    lrs = []
-    stop = False
-    count = 0
-
-    for epoch in range(1, args.num_it):
-
-        if stop:
-            break
-
-        net.train()
-        for batch_idx, (images, masks) in enumerate(train_loader):
-
-            count += 1
-            if count > args.num_it:
-                stop = True
-                break
-
-            optimizer.zero_grad()
-
-            images = images.cuda()
-            masks = masks.cuda()
-            preds = net(images)
-
-            loss = loss_fn(preds, masks)
-            loss.backward()
-
-            if torch.isnan(loss):
-                stop = True
-                break
-
-            optimizer.step()
-            exponetial_scheduler.step()
-
-            print('iteration: {}, lr: {:08f}, loss: {:04f}'.format(
-                count, optimizer.param_groups[0]['lr'], loss))
-
-            losses.append(loss)
-            lrs.append(optimizer.param_groups[0]['lr'])
-
-    # plot the result
-    loss = np.array(losses[args.skip_start: -args.skip_end])
-    lr = np.array(lrs[args.skip_start: -args.skip_end])
-
-    plt.plot(lr, loss)
-    plt.xscale("log")
-    plt.xlabel("Learning rate")
-    plt.ylabel("Loss")
-    plt.savefig('lr_finder.jpeg')
+    loss, lr = lr_finder(train_loader, net, start_lr=args.start_lr,
+                         end_lr=args.end_lr, stop_div=args.stop_div)
+    plot(loss, lr, skip_start=args.skip_start, skip_end=args.skip_end)
