@@ -19,10 +19,14 @@ def lr_finder(train_loader: DataLoader,
               start_lr: float = 1e-7,
               end_lr: float = 10,
               num_it: int = 100,
+<<<<<<< HEAD
               stop_div: bool = True,
               smooth_f: float = 0.05,
               weight_decay: float = 0
               ):
+=======
+              stop_div: bool = True):
+>>>>>>> d52f2fd... Refactor: remove trailing whitespaces
     """Performs the learning rate range test.
     Arguments:
         train_loader (torch.utils.data.DataLoader): the training set data laoder.
