@@ -7,4 +7,3 @@ class Settings:
                 setattr(self, attr, getattr(settings, attr))
 
 settings = Settings(global_settings)
-

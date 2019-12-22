@@ -12,7 +12,7 @@ class BasicConv2d(nn.Module):
             nn.BatchNorm2d(out_channels),
             nn.ReLU(inplace=True)
         )
-    
+
     def forward(self, x):
         return self.conv(x)
 
@@ -24,7 +24,7 @@ class UpSample2d(nn.Module):
 
         self.up = nn.Upsample(scale_factor=2, mode='bilinear', align_corners=True)
         self.conv = BasicConv2d(in_channels, out_channels)
-    
+
     def forward(self, x):
         x = self.up(x)
         x = self.conv(x)
@@ -90,7 +90,7 @@ class UNet(nn.Module):
 
         self.output = BasicConv2d(64, class_num)
         self.maxpool = nn.MaxPool2d(2, 2)
-    
+
     def forward(self, x):
         """It consists of the repeated application of two 3x3 convolutions
         (unpadded convolutions), each followed by a rectified linear unit
@@ -117,7 +117,7 @@ class UNet(nn.Module):
         two 3x3 convolutionsimage_size, each followed by a ReLU."""
         xup1 = self.upsample1(x)
 
-        diff_h = xd4.size(2) - xup1.size(2) 
+        diff_h = xd4.size(2) - xup1.size(2)
         diff_w = xd4.size(3) - xup1.size(3)
         xup1 = F.pad(xup1, [diff_w // 2, diff_w - diff_w //
                             2, diff_h // 2, diff_h - diff_h // 2])
@@ -126,7 +126,7 @@ class UNet(nn.Module):
         x = self.up1(xup1)
         xup2 = self.upsample2(x)
 
-        diff_h = xd3.size(2) - xup2.size(2) 
+        diff_h = xd3.size(2) - xup2.size(2)
         diff_w = xd3.size(3) - xup2.size(3)
         xup2 = F.pad(xup2, [diff_w // 2, diff_w - diff_w //
                             2, diff_h // 2, diff_h - diff_h // 2])
@@ -135,7 +135,7 @@ class UNet(nn.Module):
         x = self.up2(xup2)
         xup3 = self.upsample3(x)
 
-        diff_h = xd2.size(2) - xup3.size(2) 
+        diff_h = xd2.size(2) - xup3.size(2)
         diff_w = xd2.size(3) - xup3.size(3)
         xup3 = F.pad(xup3, [diff_w // 2, diff_w - diff_w //
                             2, diff_h // 2, diff_h - diff_h // 2])
@@ -144,7 +144,7 @@ class UNet(nn.Module):
         x = self.up3(xup3)
         xup4 = self.upsample4(x)
 
-        diff_h = xd1.size(2) - xup4.size(2) 
+        diff_h = xd1.size(2) - xup4.size(2)
         diff_w = xd1.size(3) - xup4.size(3)
         xup4 = F.pad(xup4, [diff_w // 2, diff_w - diff_w //
                             2, diff_h // 2, diff_h - diff_h // 2])

@@ -79,7 +79,7 @@ class CamVid(Dataset):
         }
 
         self.class_names = ['Sky', 'Building', 'Pole', 'Road', 'Pavement',
-                            'Tree', 'SignSymbol', 'Fence', 'Car', 'Pedestrian', 
+                            'Tree', 'SignSymbol', 'Fence', 'Car', 'Pedestrian',
                             'Bicyclist', 'Void']
 
         valid_names = []
@@ -104,7 +104,7 @@ class CamVid(Dataset):
         self.class_num = len(self.class_names)
 
     def __getitem__(self, index):
-        
+
         image_name = self.image_names[index]
         image_path = os.path.join(self.data_path, 'images', image_name)
         label_path = os.path.join(self.data_path, 'labels', image_name.replace('.', '_P.'))

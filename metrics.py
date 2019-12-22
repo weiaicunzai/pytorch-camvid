@@ -33,7 +33,7 @@ class Metrics:
         self._confusion_matrix.fill(0)
 
     def precision(self, average=True):
-        
+
         cm = self._confusion_matrix
         precision = np.diag(cm) / (cm.sum(axis=0) + 1e-15)
 
@@ -69,6 +69,3 @@ class Metrics:
             iou = iou.mean()
 
         return iou
-
-
-

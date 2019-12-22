@@ -60,7 +60,7 @@ def get_test_dataloader(data_path, image_size, batch_size, mean, std):
     ])
 
     valid_dataset = CamVid(
-        settings.DATA_PATH, 
+        settings.DATA_PATH,
         'val',
         transforms=valid_transforms,
     )
@@ -123,7 +123,7 @@ def train_loop_fn(net, train_loader, device, context):
         ))
 
         total_loss += loss
-        #with torch.no_grad():  
+        #with torch.no_grad():
         #    preds = preds.argmax(dim=1)
         #    preds = preds.view(-1)
         #    masks = masks.view(-1)
@@ -207,18 +207,18 @@ if __name__ == '__main__':
     Flag['milestones'] = settings.MILESTONES
     Flag['ignore_idx'] = train_data_loader.dataset.ignore_index
 
-    len(train_data_loader.dataset) 
+    len(train_data_loader.dataset)
     net = UNet(3, train_data_loader.dataset.class_num)
     devices = (
       xm.get_xla_supported_devices())
     print(devices)
     net = dp.DataParallel(net, device_ids=devices)
-   
+
     iter_per_epoch = len(train_data_loader) / 8
 
     best_iou = 0
     for epoch in range(1, args.e + 1):
-        print('training epoch {}'.format(epoch)) 
+        print('training epoch {}'.format(epoch))
         t1 = time.time()
 
         net(train_loop_fn, train_data_loader)
@@ -256,7 +256,3 @@ if __name__ == '__main__':
         #    state_dict = net.models[0].to('cpu').state_dict()
         #    torch.save(state_dict,
         #                    checkpoint_path.format(epoch=epoch, type='regular'))
-
-
-
-

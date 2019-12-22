@@ -12,7 +12,7 @@ class Compose:
     """Composes several transforms together.
     Args:
         transforms(list of 'Transform' object): list of transforms to compose
-    """    
+    """
 
     def __init__(self, transforms):
         self.transforms = transforms
@@ -55,8 +55,8 @@ class Resize:
         return resized_img, resized_mask
 
 class RandomScale:
-    """Randomly scaling an image (from 0.5 to 2.0]), the output image and mask 
-    shape will be the same as the input image and mask shape. If the 
+    """Randomly scaling an image (from 0.5 to 2.0]), the output image and mask
+    shape will be the same as the input image and mask shape. If the
     scaled image is larger than the input image, randomly crop the scaled
     image.If the scaled image is smaller than the input image, pad the scaled
     image.
@@ -92,7 +92,7 @@ class RandomScale:
         diff_w = max(0, ow - w)
 
         img = cv2.copyMakeBorder(
-            img, 
+            img,
             diff_h // 2,
             diff_h - diff_h // 2,
             diff_w // 2,
@@ -146,9 +146,9 @@ class RandomRotation:
         image = cv2.warpAffine(
             image, rot_mat, image.shape[1::-1])
         mask = cv2.warpAffine(
-            mask, rot_mat, mask.shape[1::-1], 
-            flags=cv2.INTER_NEAREST, 
-            borderMode=cv2.BORDER_CONSTANT, 
+            mask, rot_mat, mask.shape[1::-1],
+            flags=cv2.INTER_NEAREST,
+            borderMode=cv2.BORDER_CONSTANT,
             borderValue=self.value
         )
 
@@ -174,9 +174,8 @@ class RandomHorizontalFlip:
         if random.random() < self.p:
             img = cv2.flip(img, 1)
             mask = cv2.flip(mask, 1)
-        
-        return img, mask
 
+        return img, mask
 
 class RandomGaussianBlur:
     """Blur an image using gaussian blurring.
@@ -252,7 +251,7 @@ class ColorJitter:
         if isinstance(value, numbers.Number):
             assert value >= 0, 'value should be non negative'
             value = [max(0, 1 - value), 1 + value]
-        
+
         elif isinstance(value, (list, tuple)):
             assert len(value) == 2, 'brightness should be a tuple/list with 2 elements'
             assert 0 <= value[0] <= value[1], 'max should be larger than or equal to min,\
@@ -303,7 +302,7 @@ class ColorJitter:
         return img, mask
 
 class ToTensor:
-    """convert an opencv image (h, w, c) ndarray range from 0 to 255 to a pytorch 
+    """convert an opencv image (h, w, c) ndarray range from 0 to 255 to a pytorch
     float tensor (c, h, w) ranged from 0 to 1, and convert mask to torch tensor
     """
 
@@ -327,7 +326,7 @@ class ToTensor:
 class Normalize:
     """Normalize a torch tensor (H, W, BGR order) with mean and standard deviation
     and does nothing to mask tensor
-    
+
     for each channel in torch tensor:
         ``input[channel] = (input[channel] - mean[channel]) / std[channel]``
     Args:
@@ -346,7 +345,7 @@ class Normalize:
             (H W C) format numpy array range from [0, 255]
         Returns:
             (H W C) format numpy array in float32 range from [0, 1]
-        """        
+        """
         assert torch.is_tensor(img) and img.ndimension() == 3, 'not an image tensor'
 
         if not self.inplace:

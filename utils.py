@@ -14,7 +14,7 @@ def _get_lastlayer_params(net):
     """get last trainable layer of a net
     Args:
         network architectur
-    
+
     Returns:
         last layer weights and last layer bias
     """
@@ -25,7 +25,7 @@ def _get_lastlayer_params(net):
             last_layer_weights = para
         if 'bias' in name:
             last_layer_bias = para
-        
+
     return last_layer_weights, last_layer_bias
 
 def visulaize_lastlayer(writer, net, n_iter):
@@ -62,7 +62,7 @@ def visualize_param_hist(writer, net, n_iter):
 #        self.val_max = val[val != 0]
 #        self.val_min = val[val == 0]
 #
-#        self.preds = preds 
+#        self.preds = preds
 #        self.preds[preds > thresh] = self.val_max
 #        self.preds[preds <= thresh] = self.val_min
 #        self.gt = gt
@@ -125,7 +125,7 @@ def visualize_param_hist(writer, net, n_iter):
 #            cms = self.confusion_matrix[cls_idx::self._class_num]
 #            assert len(cms) == self._batch_size
 #
-#            temp = torch.stack([cm['true_positive'].float() / (cm['true_positive'] + 
+#            temp = torch.stack([cm['true_positive'].float() / (cm['true_positive'] +
 #                        cm['false_negative'] + 1e-8) for cm in cms], 0)
 #
 #            res.append(torch.mean(temp))
@@ -140,7 +140,7 @@ def visualize_param_hist(writer, net, n_iter):
 #        for cls_idx in range(self._class_num):
 #            cms = self.confusion_matrix[cls_idx::self._class_num]
 #
-#            temp = torch.stack([cm['true_positive'].float() / (cm['true_positive'] + 
+#            temp = torch.stack([cm['true_positive'].float() / (cm['true_positive'] +
 #                   cm['false_positive'] + 1e-8) for cm in cms], dim=0)
 #            res.append(torch.mean(temp))
 #
@@ -152,7 +152,7 @@ def visualize_param_hist(writer, net, n_iter):
 #        for cls_idx in range(self._class_num):
 #            cms = self.confusion_matrix[cls_idx::self._class_num]
 #
-#            iou = torch.stack([cm['true_positive'].float() / 
+#            iou = torch.stack([cm['true_positive'].float() /
 #                  (cm['true_positive'] + cm['false_positive'] + cm['false_negative']
 #                   + 1e-8) for cm in cms], dim=0)
 #
@@ -173,8 +173,8 @@ def visualize_param_hist(writer, net, n_iter):
 #        for cls_idx in range(self._class_num):
 #            cms = self.confusion_matrix[cls_idx::self._class_num]
 #
-#            acc = [(cm['true_positive'] + cm['true_negative']).float() / 
-#                    (cm['true_positive'] + cm['true_negative'] + 
+#            acc = [(cm['true_positive'] + cm['true_negative']).float() /
+#                    (cm['true_positive'] + cm['true_negative'] +
 #                    cm['false_negative'] + cm['false_positive'] + 1e-8) for cm in cms]
 #
 #            acc = torch.stack(acc, dim=0)
@@ -209,7 +209,7 @@ def compute_mean_and_std(dataset):
     """Compute dataset mean and std, and normalize it
     Args:
         dataset: instance of torch.nn.Dataset
-    
+
     Returns:
         return: mean and std of this dataset
     """
@@ -249,5 +249,3 @@ def compute_mean_and_std(dataset):
     mean = (mean_b.item() / 255.0, mean_g.item() / 255.0, mean_r.item() / 255.0)
     std = (std_b.item() / 255.0, std_g.item() / 255.0, std_r.item() / 255.0)
     return mean, std
-
-

@@ -14,11 +14,11 @@ from lr_scheduler import ExponentialLR
 from model import UNet
 
 
-def lr_finder(train_loader: DataLoader, 
-              net: nn.Module, 
-              start_lr: float = 1e-7, 
-              end_lr: float = 10, 
-              num_it: int = 100, 
+def lr_finder(train_loader: DataLoader,
+              net: nn.Module,
+              start_lr: float = 1e-7,
+              end_lr: float = 10,
+              num_it: int = 100,
               stop_div: bool = True):
     """Performs the learning rate range test.
     Arguments:
@@ -121,7 +121,7 @@ if __name__ == '__main__':
 
 
     train_dataset = CamVid(
-        settings.DATA_PATH, 
+        settings.DATA_PATH,
         'train'
     )
 

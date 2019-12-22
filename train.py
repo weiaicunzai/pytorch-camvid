@@ -99,8 +99,6 @@ if __name__ == '__main__':
 
         ious = 0
         for batch_idx, (images, masks) in enumerate(train_loader):
-            if epoch <= args.warm:
-                warmup_scheduler.step()
 
             optimizer.zero_grad()
 
