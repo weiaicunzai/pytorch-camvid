@@ -191,7 +191,7 @@ if __name__ == '__main__':
             precision=precision
         ))
 
-        if best_iou < miou and epoch > settings.MILESTONES[-1]:
+        if best_iou < miou and epoch > args.e // 2:
             best_iou = miou
             torch.save(net.state_dict(),
                             checkpoint_path.format(epoch=epoch, type='best'))
