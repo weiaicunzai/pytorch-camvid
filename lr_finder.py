@@ -19,7 +19,9 @@ def lr_finder(train_loader: DataLoader,
               start_lr: float = 1e-7,
               end_lr: float = 10,
               num_it: int = 100,
-              stop_div: bool = True):
+              stop_div: bool = True,
+              smooth_f: float = 0.05
+    ):
     """Performs the learning rate range test.
     Arguments:
         train_loader (torch.utils.data.DataLoader): the training set data laoder.
@@ -27,7 +29,10 @@ def lr_finder(train_loader: DataLoader,
         end_lr (float, optional): the maximum learning rate to test. Default: 10.
         num_iter (int, optional): the number of iterations over which the test
             occurs. Default: 100.
-        stop_div (bool, optional): the test is stopped when the loss diverges
+        stop_div (bool, optional): the test is stopped when the loss diverges.
+        smooth_f (float, optional): the loss smoothing factor within interval
+            [0, 1]. Disabled if set to 0, otherwise the loss is smoothed using
+            exponential smoothing. Details: 0.05.
 
     Returns:
         loss (numpy.array): loss for each iteration
@@ -75,6 +80,9 @@ def lr_finder(train_loader: DataLoader,
 
             print('iteration: {}, lr: {:08f}, loss: {:04f}'.format(
                 count, optimizer.param_groups[0]['lr'], loss))
+
+            if count != 1:
+                loss = smooth_f * loss + (1 - smooth_f) * losses[-1]
 
             losses.append(loss)
             lrs.append(optimizer.param_groups[0]['lr'])
