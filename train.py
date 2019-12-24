@@ -87,7 +87,7 @@ if __name__ == '__main__':
     iter_per_epoch = len(train_dataset) / args.b
 
     train_scheduler = optim.lr_scheduler.OneCycleLR(
-        optimizer, max_lr=1e-2, steps_per_epoch=len(train_loader), epochs=args.e)
+        optimizer, max_lr=args.lr, steps_per_epoch=len(train_loader), epochs=args.e)
     loss_fn = nn.CrossEntropyLoss()
 
     metrics = Metrics(valid_dataset.class_num, valid_dataset.ignore_index)
