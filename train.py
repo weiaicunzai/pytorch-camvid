@@ -7,7 +7,6 @@ import cv2
 import torch
 import torch.nn as nn
 import torch.optim as optim
-from torch.utils.data.sampler import SubsetRandomSampler
 from torch.utils.tensorboard import SummaryWriter
 
 import transforms
@@ -45,11 +44,11 @@ if __name__ == '__main__':
     writer = SummaryWriter(log_dir=log_dir)
 
     train_dataset = CamVid(
-        settings.DATA_PATH, 
+        settings.DATA_PATH,
         'train'
     )
     valid_dataset = CamVid(
-        settings.DATA_PATH, 
+        settings.DATA_PATH,
         'val'
     )
 
@@ -83,7 +82,7 @@ if __name__ == '__main__':
 
     tensor = torch.Tensor(1, 3, *settings.IMAGE_SIZE)
     utils.visualize_network(writer, net, tensor)
-    
+
     optimizer = optim.SGD(net.parameters(), lr=args.lr,
                           momentum=0.9, weight_decay=1e-4, nesterov=True)
     iter_per_epoch = len(train_dataset) / args.b
@@ -94,7 +93,7 @@ if __name__ == '__main__':
 
 
     metrics = Metrics(valid_dataset.class_num, valid_dataset.ignore_index)
-    best_iou = 0 
+    best_iou = 0
     for epoch in range(1, args.e + 1):
         start = time.time()
         if epoch > args.warm:
@@ -135,14 +134,14 @@ if __name__ == '__main__':
             )
 
         utils.visualize_scalar(
-            writer, 
-            'Train/LearningRate', 
-            optimizer.param_groups[0]['lr'], 
+            writer,
+            'Train/LearningRate',
+            optimizer.param_groups[0]['lr'],
             epoch,
         )
 
         utils.visualize_param_hist(writer, net, epoch)
-        print('time for training epoch {} : {}'.format(epoch, time.time() - start)) 
+        print('time for training epoch {} : {}'.format(epoch, time.time() - start))
 
         net.eval()
         test_loss = 0.0
