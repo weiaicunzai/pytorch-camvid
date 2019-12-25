@@ -47,6 +47,7 @@ if __name__ == '__main__':
     net = net.cuda()
 
     net.eval()
+    test_loss = 0
     with torch.no_grad():
         for batch_idx, (images, masks) in enumerate(valid_loader):
 
@@ -62,6 +63,8 @@ if __name__ == '__main__':
             preds = preds.view(-1).cpu().data.numpy()
             masks = masks.view(-1).cpu().data.numpy()
             metrics.add(preds, masks)
+
+            print('iteration: {}, loss: {}'.format(batch_idx, loss))
 
     miou = metrics.iou()
     precision = metrics.precision()
