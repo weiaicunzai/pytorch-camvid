@@ -1,6 +1,5 @@
 import argparse
 
-import cv2
 import torch
 import torch.nn as nn
 
@@ -64,7 +63,7 @@ if __name__ == '__main__':
             masks = masks.view(-1).cpu().data.numpy()
             metrics.add(preds, masks)
 
-            print('iteration: {}, loss: {}'.format(batch_idx, loss))
+            print('iteration: {}, loss: {:.4f}'.format(batch_idx, loss))
 
     test_loss = test_loss / len(valid_loader)
     miou = metrics.iou()
@@ -73,8 +72,8 @@ if __name__ == '__main__':
     metrics.clear()
 
 
-    print(('miou: {miou}, precision: {precision}, '
-           'recall: {recall}, average loss: {loss}').format(
+    print(('miou: {miou:.4f}, precision: {precision:.4f}, '
+           'recall: {recall:.4f}, average loss: {loss:.4f}').format(
         miou=miou,
         precision=precision,
         recall=recall,
