@@ -92,8 +92,7 @@ if __name__ == '__main__':
     tensor = torch.Tensor(1, 3, *settings.IMAGE_SIZE)
     utils.visualize_network(writer, net, tensor)
 
-    optimizer = optim.SGD(net.parameters(), lr=args.lr,
-                          momentum=0.9, weight_decay=1e-4, nesterov=True)
+    optimizer = optim.SGD(net.parameters(), lr=args.lr, momentum=0.9)
     iter_per_epoch = len(train_dataset) / args.b
 
     train_scheduler = optim.lr_scheduler.OneCycleLR(
@@ -131,12 +130,13 @@ if __name__ == '__main__':
             train_scheduler.step()
 
             print(('Training Epoch:{epoch} [{trained_samples}/{total_samples}] '
-                    'Lr:{lr:0.6f} Loss:{loss:0.4f} ').format(
+                    'Lr:{lr:0.6f} Loss:{loss:0.4f} Momentum:{momentum:0.4f}').format(
                 loss=loss.item(),
                 epoch=epoch,
                 trained_samples=batch_idx * args.b + len(images),
                 total_samples=len(train_dataset),
                 lr=optimizer.param_groups[0]['lr'],
+                momentum=optimizer.param_groups[0]['momentum']
             ))
 
             n_iter = (epoch - 1) * iter_per_epoch + batch_idx + 1
@@ -153,6 +153,12 @@ if __name__ == '__main__':
             epoch,
         )
 
+        utils.visualize_scalar(
+            writer,
+            'Train/Momentum',
+            optimizer.param_groups[0]['momentum'],
+            epoch,
+        )
         utils.visualize_param_hist(writer, net, epoch)
         print('time for training epoch {} : {}'.format(epoch, time.time() - start))
 
