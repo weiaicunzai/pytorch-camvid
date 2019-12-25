@@ -66,13 +66,17 @@ if __name__ == '__main__':
 
             print('iteration: {}, loss: {}'.format(batch_idx, loss))
 
+    test_loss = test_loss / len(valid_loader)
     miou = metrics.iou()
     precision = metrics.precision()
     recall = metrics.recall()
     metrics.clear()
 
-    print('miou: {miou}, precision: {precision}, recall: {recall}'.format(
+
+    print(('miou: {miou}, precision: {precision}, '
+           'recall: {recall}, average loss: {loss}').format(
         miou=miou,
         precision=precision,
-        recall=recall
+        recall=recall,
+        loss=test_loss
     ))
