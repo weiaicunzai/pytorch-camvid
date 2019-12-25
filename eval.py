@@ -42,7 +42,7 @@ if __name__ == '__main__':
 
     loss_fn = nn.CrossEntropyLoss()
 
-    net = UNet(3, args.c)
+    net = UNet(3, valid_dataset.class_num)
     net.load_state_dict(torch.load(args.weight))
     net = net.cuda()
 
