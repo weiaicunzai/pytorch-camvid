@@ -39,8 +39,7 @@ def lr_finder(train_loader: DataLoader,
         lr (numpy.array): learning rate for each iteration
     """
 
-    optimizer = optim.SGD(net.parameters(), lr=args.start_lr,
-                          momentum=0.9, weight_decay=1e-4, nesterov=True)
+    optimizer = optim.SGD(net.parameters(), lr=args.start_lr, momentum=0.9)
     exponetial_scheduler = ExponentialLR(optimizer, args.end_lr, args.num_it)
     loss_fn = nn.CrossEntropyLoss()
 
