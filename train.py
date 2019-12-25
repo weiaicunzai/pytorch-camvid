@@ -107,7 +107,7 @@ if __name__ == '__main__':
 
     if args.resume:
         weight_file_name = re.search('[0-9]+-(best|regular).pth', weight_path).group(0)
-        trained_epochs = int(re.search('[0-9]+', weight_file_name).group[0])
+        trained_epochs = int(re.search('[0-9]+', weight_file_name).group(0))
         train_scheduler.step(trained_epochs * len(train_loader))
 
     for epoch in range(trained_epochs + 1, args.e + 1):
