@@ -1,6 +1,7 @@
 import argparse
 import os
 import time
+import re
 
 import cv2
 import torch
@@ -25,6 +26,7 @@ if __name__ == '__main__':
                         help='initial learning rate')
     parser.add_argument('-e', type=int, default=100, help='training epoches')
     parser.add_argument('-warm', type=int, default=5, help='warm up phase')
+    parser.add_argument('-resume', type=bool, default=False, help='if resume training')
     args = parser.parse_args()
 
     root_path = os.path.dirname(os.path.abspath(__file__))
@@ -77,6 +79,14 @@ if __name__ == '__main__':
         valid_dataset, batch_size=args.b, num_workers=4)
 
     net = UNet(3, train_dataset.class_num)
+
+    if args.resume:
+        weight_path = utils.get_weight_path(
+            os.path.join(root_path, settings.CHECKPOINT_FOLDER))
+        print('Loading weight file: {}...'.format(weight_path))
+        net.load_state_dict(torch.load(weight_path))
+        print('Done loading!')
+
     net = net.cuda()
 
     tensor = torch.Tensor(1, 3, *settings.IMAGE_SIZE)
@@ -92,7 +102,15 @@ if __name__ == '__main__':
 
     metrics = Metrics(valid_dataset.class_num, valid_dataset.ignore_index)
     best_iou = 0
-    for epoch in range(1, args.e + 1):
+
+    trained_epochs = 0
+
+    if args.resume:
+        weight_file_name = re.search('[0-9]+-(best|regular).pth', weight_path).group(0)
+        trained_epochs = int(re.search('[0-9]+', weight_file_name).group[0])
+        train_scheduler.step(trained_epochs * len(train_loader))
+
+    for epoch in range(trained_epochs + 1, args.e + 1):
         start = time.time()
 
         net.train()

@@ -1,5 +1,7 @@
 
 import os
+import glob
+import re
 
 import numpy as np
 import torch
@@ -45,166 +47,6 @@ def visualize_param_hist(writer, net, n_iter):
         attr = attr[1:]
         writer.add_histogram("{}/{}".format(layer, attr), param, n_iter)
 
-#class Metrics:
-#    """evaluate predictions, supported metrics: mIOU, F1, presicion,
-#    recall
-#    """
-#
-#    def __init__(self, preds, gt, thresh=0.5):
-#        """class constructor
-#        preds: pytorch tensor object (batchsize, channel, x, y)
-#        gt: pytorch tensor object, same shape as preds, only has two distinct
-#            value, e.g. (0, 1) or (0, 255)
-#        """
-#        val = torch.unique(gt).long()
-#        assert val.numel() == 2
-#        assert preds.size() == gt.size()
-#        self.val_max = val[val != 0]
-#        self.val_min = val[val == 0]
-#
-#        self.preds = preds
-#        self.preds[preds > thresh] = self.val_max
-#        self.preds[preds <= thresh] = self.val_min
-#        self.gt = gt
-#        self._batch_size, self._class_num, self._height, self._width = gt.size()
-#
-#        self.gt = self.gt.long()
-#        self.preds = self.preds.long()
-#
-#        self.confusion_matrix = self._confusion_matrix()
-#
-#    def _confusion_matrix(self):
-#        """generate confusion matrix for later use
-#        """
-#
-#        res = []
-#
-#        for b_idx in range(self._batch_size):
-#            for cls_idx in range(self._class_num):
-#                #use dictionary to store confusion matrix
-#                #easy to implement, since one pixel can belong
-#                #to multiple classes in tableborder segementation
-#                confusion_matrix = {}
-#
-#                p = self.preds[b_idx, cls_idx, :, :]
-#                g = self.gt[b_idx, cls_idx, :, :]
-#
-#                total = 0
-#                #predict true to true
-#                true_positive_mask = p[g == self.val_max] == self.val_max
-#                confusion_matrix['true_positive'] = torch.sum(true_positive_mask).float()
-#                total += confusion_matrix['true_positive']
-#
-#                #predict false to true
-#                false_positive_mask = p[g == self.val_min] == self.val_max
-#                confusion_matrix['false_positive'] = torch.sum(false_positive_mask).float()
-#                total += confusion_matrix['false_positive']
-#
-#                #predict true to false
-#                false_negatigve_mask = p[g == self.val_max] == self.val_min
-#                confusion_matrix['false_negative'] = torch.sum(false_negatigve_mask).float()
-#                total += confusion_matrix['false_negative']
-#
-#                #predict false to false
-#                true_negative_mask = p[g == self.val_min] == self.val_min
-#                confusion_matrix['true_negative'] = torch.sum(true_negative_mask).float()
-#                total += confusion_matrix['true_negative']
-#
-#                assert self._height * self._width == total
-#
-#                res.append(confusion_matrix)
-#
-#        return res
-#
-#    def recall(self):
-#        """get recall for each class"""
-#
-#        res = []
-#
-#        for cls_idx in range(self._class_num):
-#            cms = self.confusion_matrix[cls_idx::self._class_num]
-#            assert len(cms) == self._batch_size
-#
-#            temp = torch.stack([cm['true_positive'].float() / (cm['true_positive'] +
-#                        cm['false_negative'] + 1e-8) for cm in cms], 0)
-#
-#            res.append(torch.mean(temp))
-#
-#        return res
-#
-#    def precision(self):
-#        """get precision for each class"""
-#
-#        res = []
-#
-#        for cls_idx in range(self._class_num):
-#            cms = self.confusion_matrix[cls_idx::self._class_num]
-#
-#            temp = torch.stack([cm['true_positive'].float() / (cm['true_positive'] +
-#                   cm['false_positive'] + 1e-8) for cm in cms], dim=0)
-#            res.append(torch.mean(temp))
-#
-#        return res
-#
-#    def iou(self):
-#        """get IOU for each class"""
-#        res = []
-#        for cls_idx in range(self._class_num):
-#            cms = self.confusion_matrix[cls_idx::self._class_num]
-#
-#            iou = torch.stack([cm['true_positive'].float() /
-#                  (cm['true_positive'] + cm['false_positive'] + cm['false_negative']
-#                   + 1e-8) for cm in cms], dim=0)
-#
-#            res.append(torch.mean(iou))
-#
-#        return res
-#
-#    def mIOU(self):
-#        """get mIOU accross each class"""
-#
-#        return torch.mean(torch.stack(self.iou(), dim=0))
-#
-#    def accuracy(self):
-#        """get pixel acc for each class"""
-#
-#        res = []
-#
-#        for cls_idx in range(self._class_num):
-#            cms = self.confusion_matrix[cls_idx::self._class_num]
-#
-#            acc = [(cm['true_positive'] + cm['true_negative']).float() /
-#                    (cm['true_positive'] + cm['true_negative'] +
-#                    cm['false_negative'] + cm['false_positive'] + 1e-8) for cm in cms]
-#
-#            acc = torch.stack(acc, dim=0)
-#
-#            res.append(torch.mean(acc))
-#
-#        return res
-#
-#    def F1(self, beta=1):
-#
-#        precision = self.precision()
-#        recall = self.recall()
-#
-#        precision = torch.stack(precision, dim=0)
-#        recall = torch.stack(recall, dim=0)
-#
-#        precision = torch.mean(precision)
-#        recall = torch.mean(recall)
-#
-#        return (1 + beta ** 2) / (beta ** 2 * (1 / precision + 1 / recall + 1e-8))
-
-
-
-
-
-
-
-
-
-
 def compute_mean_and_std(dataset):
     """Compute dataset mean and std, and normalize it
     Args:
@@ -249,3 +91,55 @@ def compute_mean_and_std(dataset):
     mean = (mean_b.item() / 255.0, mean_g.item() / 255.0, mean_r.item() / 255.0)
     std = (std_b.item() / 255.0, std_g.item() / 255.0, std_r.item() / 255.0)
     return mean, std
+
+def get_weight_path(checkpoint_path):
+    """return absolute path of the best performance
+    weight file path according to file modification
+    time.
+
+    Args:
+        checkpoint_path: checkpoint folder
+
+    Returns:
+        absolute absolute path for weight file
+    """
+    checkpoint_path = os.path.abspath(checkpoint_path)
+    weight_files = glob.glob(os.path.join(
+        checkpoint_path, '*', '*.pth'), recursive=True)
+
+    best_weights = []
+    for weight_file in weight_files:
+        m = re.search('.*[0-9]+-best.pth', weight_file)
+        if m:
+            best_weights.append(m.group(0))
+
+    # you can change this to getctime
+    compare_func = lambda w: os.path.getmtime(w)
+
+    best_weight = ''
+    if best_weights:
+        best_weight = max(best_weights, key=compare_func)
+
+    regular_weights = []
+    for weight_file in weight_files:
+        m = re.search('.*[0-9]+-regular.pth', weight_file)
+        if m:
+            regular_weights.append(m.group(0))
+
+    regular_weight = ''
+    if regular_weights:
+        regular_weight = max(regular_weights, key=compare_func)
+
+    # if we find both -best.pth and -regular.pth
+    # return the newest modified one
+    if best_weight and regular_weight:
+        return max([best_weight, regular_weight], key=compare_func)
+    # if we only find -best.pth
+    elif best_weight and not regular_weight:
+        return best_weight
+    # if we only find -regular.pth
+    elif not best_weight and regular_weight:
+        return regular_weight
+    # if we do not found any weight file
+    else:
+        return ''
