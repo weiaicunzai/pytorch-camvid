@@ -22,9 +22,10 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('-b', type=int, default=10,
                         help='batch size for dataloader')
-    parser.add_argument('-lr', type=float, default=0.05,
+    parser.add_argument('-lr', type=float, default=5e-4,
                         help='initial learning rate')
-    parser.add_argument('-e', type=int, default=100, help='training epoches')
+    parser.add_argument('-e', type=int, default=120, help='training epoches')
+    parser.add_argument('-wd', type=float, default=0, help='training epoches')
     parser.add_argument('-warm', type=int, default=5, help='warm up phase')
     parser.add_argument('-resume', type=bool, default=False, help='if resume training')
     args = parser.parse_args()
@@ -92,7 +93,7 @@ if __name__ == '__main__':
     tensor = torch.Tensor(1, 3, *settings.IMAGE_SIZE)
     utils.visualize_network(writer, net, tensor)
 
-    optimizer = optim.SGD(net.parameters(), lr=args.lr, momentum=0.9)
+    optimizer = optim.AdamW(net.parameters(), lr=args.lr, weight_decay=args.wd)
     iter_per_epoch = len(train_dataset) / args.b
 
     train_scheduler = optim.lr_scheduler.OneCycleLR(
@@ -105,8 +106,8 @@ if __name__ == '__main__':
     trained_epochs = 0
 
     if args.resume:
-        weight_file_name = re.search('[0-9]+-(best|regular).pth', weight_path).group(0)
-        trained_epochs = int(re.search('[0-9]+', weight_file_name).group(0))
+        trained_epochs = int(
+            re.search('([0-9]+)-(best|regular).pth', weight_path).group(1))
         train_scheduler.step(trained_epochs * len(train_loader))
 
     for epoch in range(trained_epochs + 1, args.e + 1):
@@ -130,13 +131,13 @@ if __name__ == '__main__':
             train_scheduler.step()
 
             print(('Training Epoch:{epoch} [{trained_samples}/{total_samples}] '
-                    'Lr:{lr:0.6f} Loss:{loss:0.4f} Momentum:{momentum:0.4f}').format(
+                    'Lr:{lr:0.6f} Loss:{loss:0.4f} Beta1:{momentum:0.4f}').format(
                 loss=loss.item(),
                 epoch=epoch,
                 trained_samples=batch_idx * args.b + len(images),
                 total_samples=len(train_dataset),
                 lr=optimizer.param_groups[0]['lr'],
-                momentum=optimizer.param_groups[0]['momentum']
+                momentum=optimizer.param_groups[0]['betas'][0]
             ))
 
             n_iter = (epoch - 1) * iter_per_epoch + batch_idx + 1
@@ -156,7 +157,7 @@ if __name__ == '__main__':
         utils.visualize_scalar(
             writer,
             'Train/Momentum',
-            optimizer.param_groups[0]['momentum'],
+            optimizer.param_groups[0]['betas'][0],
             epoch,
         )
         utils.visualize_param_hist(writer, net, epoch)

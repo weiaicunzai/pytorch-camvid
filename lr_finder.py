@@ -20,8 +20,9 @@ def lr_finder(train_loader: DataLoader,
               end_lr: float = 10,
               num_it: int = 100,
               stop_div: bool = True,
-              smooth_f: float = 0.05
-    ):
+              smooth_f: float = 0.05,
+              weight_decay: float = 0
+              ):
     """Performs the learning rate range test.
     Arguments:
         train_loader (torch.utils.data.DataLoader): the training set data laoder.
@@ -33,13 +34,15 @@ def lr_finder(train_loader: DataLoader,
         smooth_f (float, optional): the loss smoothing factor within interval
             [0, 1]. Disabled if set to 0, otherwise the loss is smoothed using
             exponential smoothing. Details: 0.05.
+        weight_decay: (float, optional): weight_decay factor
 
     Returns:
         loss (numpy.array): loss for each iteration
         lr (numpy.array): learning rate for each iteration
     """
 
-    optimizer = optim.SGD(net.parameters(), lr=args.start_lr, momentum=0.9)
+    optimizer = optim.AdamW(net.parameters(), lr=start_lr,
+                            weight_decay=weight_decay)
     exponetial_scheduler = ExponentialLR(optimizer, args.end_lr, args.num_it)
     loss_fn = nn.CrossEntropyLoss()
 
@@ -92,6 +95,7 @@ def lr_finder(train_loader: DataLoader,
 
     return loss, lr
 
+
 def plot(loss, lr, skip_start=10, skip_end=5, image_name='lr_finder.jpg'):
     """Draw learning range test result
 
@@ -121,11 +125,15 @@ if __name__ == '__main__':
                         help='initial learning rate')
     parser.add_argument('-stop_div', type=bool, default=True,
                         help='stops when loss diverges')
-    parser.add_argument('-num_it', type=int, default=100, help='number of iterations')
-    parser.add_argument('-skip_start', type=int, default=10, help='number of batches to trim from the start')
-    parser.add_argument('-skip_end', type=int, default=5, help='number of batches to trim from the end')
+    parser.add_argument('-num_it', type=int, default=100,
+                        help='number of iterations')
+    parser.add_argument('-skip_start', type=int, default=10,
+                        help='number of batches to trim from the start')
+    parser.add_argument('-skip_end', type=int, default=5,
+                        help='number of batches to trim from the end')
+    parser.add_argument('-weight_decay', type=float,
+                        default=0, help='weight decay factor')
     args = parser.parse_args()
-
 
     train_dataset = CamVid(
         settings.DATA_PATH,
@@ -152,5 +160,6 @@ if __name__ == '__main__':
     net = net.cuda()
 
     loss, lr = lr_finder(train_loader, net, start_lr=args.start_lr,
-                         end_lr=args.end_lr, stop_div=args.stop_div)
+                         end_lr=args.end_lr, stop_div=args.stop_div,
+                         weight_decay=args.weight_decay)
     plot(loss, lr, skip_start=args.skip_start, skip_end=args.skip_end)
