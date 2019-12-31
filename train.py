@@ -13,7 +13,6 @@ import transforms
 import utils
 from conf import settings
 from dataset.camvid import CamVid
-from lr_scheduler import WarmUpLR
 from metrics import Metrics
 from model import UNet
 
@@ -26,7 +25,6 @@ if __name__ == '__main__':
                         help='initial learning rate')
     parser.add_argument('-e', type=int, default=120, help='training epoches')
     parser.add_argument('-wd', type=float, default=0, help='training epoches')
-    parser.add_argument('-warm', type=int, default=5, help='warm up phase')
     parser.add_argument('-resume', type=bool, default=False, help='if resume training')
     args = parser.parse_args()
 

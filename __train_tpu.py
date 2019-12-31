@@ -23,7 +23,6 @@ import transforms
 import utils
 from conf import settings
 from dataset.camvid import CamVid
-from lr_scheduler import WarmUpLR
 from metrics import Metrics
 from model import UNet
 
