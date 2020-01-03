@@ -143,3 +143,18 @@ def get_weight_path(checkpoint_path):
     # if we do not found any weight file
     else:
         return ''
+
+def get_model(model_name, input_channels, class_num):
+
+    if model_name == 'unet':
+        from models.unet import UNet
+        net = UNet(input_channels, class_num)
+
+    elif model_name == 'segnet':
+        from models.segnet import SegNet
+        net = SegNet(input_channels, class_num)
+
+    else:
+        raise ValueError('network type does not supported')
+
+    return net

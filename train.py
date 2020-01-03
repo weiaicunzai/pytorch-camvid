@@ -26,6 +26,7 @@ if __name__ == '__main__':
     parser.add_argument('-e', type=int, default=120, help='training epoches')
     parser.add_argument('-wd', type=float, default=0, help='training epoches')
     parser.add_argument('-resume', type=bool, default=False, help='if resume training')
+    parser.add_argument('-net', type=str, required=True, help='if resume training')
     args = parser.parse_args()
 
     root_path = os.path.dirname(os.path.abspath(__file__))
@@ -77,7 +78,7 @@ if __name__ == '__main__':
     validation_loader = torch.utils.data.DataLoader(
         valid_dataset, batch_size=args.b, num_workers=4)
 
-    net = UNet(3, train_dataset.class_num)
+    net = utils.get_model(args.net, 3, train_dataset.class_num)
 
     if args.resume:
         weight_path = utils.get_weight_path(
