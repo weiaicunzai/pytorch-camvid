@@ -129,13 +129,13 @@ if __name__ == '__main__':
             train_scheduler.step()
 
             print(('Training Epoch:{epoch} [{trained_samples}/{total_samples}] '
-                    'Lr:{lr:0.6f} Loss:{loss:0.4f} Beta1:{momentum:0.4f}').format(
+                    'Lr:{lr:0.6f} Loss:{loss:0.4f} Beta1:{beta:0.4f}').format(
                 loss=loss.item(),
                 epoch=epoch,
                 trained_samples=batch_idx * args.b + len(images),
                 total_samples=len(train_dataset),
                 lr=optimizer.param_groups[0]['lr'],
-                momentum=optimizer.param_groups[0]['betas'][0]
+                beta=optimizer.param_groups[0]['betas'][0]
             ))
 
             n_iter = (epoch - 1) * iter_per_epoch + batch_idx + 1
@@ -154,7 +154,7 @@ if __name__ == '__main__':
 
         utils.visualize_scalar(
             writer,
-            'Train/Momentum',
+            'Train/Beta1',
             optimizer.param_groups[0]['betas'][0],
             epoch,
         )
