@@ -53,4 +53,12 @@ the nightly version is highly unstable, so I'll update my TPU training code afte
 
 # Supported Model
 
-u-net
+```
+unet
+segnet
+```
+# Result
+
+|Dataset|Network|Parameters|mIOU|
+|:-----:|:-----:|:--------:|:--:|
+|Camvid|UNet|34.5M|0.6296|
