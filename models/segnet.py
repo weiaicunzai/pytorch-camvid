@@ -73,12 +73,11 @@ class SegNet(nn.Module):
 
         self.decoder1 = nn.Sequential(
             BasicConv(64, 64),
-            BasicConv(64, 64)
+            BasicConv(64, class_num)
         )
 
         self.maxpool = nn.MaxPool2d(2, return_indices=True)
         self.unpool = nn.MaxUnpool2d(2)
-        self.softmax = nn.Softmax(dim=1)
 
     def forward(self, x):
 
@@ -117,6 +116,4 @@ class SegNet(nn.Module):
         de_x1 = self.unpool(de_x2, idx1, output_size=fm1)
         de_x1 = self.decoder1(de_x1)
 
-        x = self.softmax(de_x1)
-
-        return x
+        return de_x1
