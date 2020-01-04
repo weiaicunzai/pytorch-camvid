@@ -76,52 +76,45 @@ class SegNet(nn.Module):
             BasicConv(64, 64)
         )
 
-        self.maxpool = F.max_pool2d_with_indices
+        self.maxpool = nn.MaxPool2d(2, return_indices=True)
+        self.unpool = nn.MaxUnpool2d(2)
         self.softmax = nn.Softmax(dim=1)
-
-    @staticmethod
-    def _unpool(input_tensor, indices, target_shape, kernel_size, stride):
-
-        x = F.max_unpool2d(input_tensor, indices, kernel_size, stride)
-
-        diff_h = x.shape[2] - target_shape[2]
-        diff_w = x.shape[3] - target_shape[3]
-
-        x = F.pad(x, [diff_w // 2, diff_w - diff_w //
-                      2, diff_h // 2, diff_h - diff_h // 2])
-
-        return x
 
     def forward(self, x):
 
         en_x1 = self.encoder1(x)
-        en_x2_mask, idx1 = self.maxpool(en_x1, 2, 2, return_indices=True)
+        fm1 = en_x1.shape
+        en_x1, idx1 = self.maxpool(en_x1)
 
-        en_x2 = self.encoder2(en_x2_mask)
-        en_x3_mask, idx2 = self.maxpool(en_x2, 2, 2, return_indices=True)
+        en_x2 = self.encoder2(en_x1)
+        fm2 = en_x2.shape
+        en_x2, idx2 = self.maxpool(en_x2)
 
-        en_x3 = self.encoder3(en_x3_mask)
-        en_x4_mask, idx3 = self.maxpool(en_x3, 2, 2, return_indices=True)
+        en_x3 = self.encoder3(en_x2)
+        fm3 = en_x3.shape
+        en_x3, idx3 = self.maxpool(en_x3)
 
-        en_x4 = self.encoder4(en_x4_mask)
-        en_x5_mask, idx4 = self.maxpool(en_x4, 2, 2, return_indices=True)
+        en_x4 = self.encoder4(en_x3)
+        fm4 = en_x4.shape
+        en_x4, idx4 = self.maxpool(en_x4)
 
-        en_x5 = self.encoder5(en_x5_mask)
-        en_x6_mask, idx5 = self.maxpool(en_x5, 2, 2, return_indices=True)
+        en_x5 = self.encoder5(en_x4)
+        fm5 = en_x5.shape
+        en_x5, idx5 = self.maxpool(en_x5)
 
-        de_x5 = self._unpool(en_x6_mask, idx5, en_x5.shape, 2, 2)
+        de_x5 = self.unpool(en_x5, idx5, output_size=fm5)
         de_x5 = self.decoder5(de_x5)
 
-        de_x4 = self._unpool(en_x5_mask, idx4, en_x4.shape, 2, 2)
+        de_x4 = self.unpool(de_x5, idx4, output_size=fm4)
         de_x4 = self.decoder4(de_x4)
 
-        de_x3 = self._unpool(en_x4_mask, idx3, en_x3.shape, 2, 2)
+        de_x3 = self.unpool(de_x4, idx3, output_size=fm3)
         de_x3 = self.decoder3(de_x3)
 
-        de_x2 = self._unpool(en_x3_mask, idx2, en_x2.shape, 2, 2)
+        de_x2 = self.unpool(de_x3, idx2, output_size=fm2)
         de_x2 = self.decoder2(de_x2)
 
-        de_x1 = self._unpool(en_x2_mask, idx1, en_x1.shape, 2, 2)
+        de_x1 = self.unpool(de_x2, idx1, output_size=fm1)
         de_x1 = self.decoder1(de_x1)
 
         x = self.softmax(de_x1)
