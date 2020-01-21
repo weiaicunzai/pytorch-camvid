@@ -14,7 +14,6 @@ import utils
 from conf import settings
 from dataset.camvid import CamVid
 from metrics import Metrics
-from model import UNet
 
 if __name__ == '__main__':
 
