@@ -11,7 +11,7 @@ import transforms
 from conf import settings
 from dataset.camvid import CamVid
 from lr_scheduler import ExponentialLR
-from model import UNet
+import utils
 
 
 def lr_finder(train_loader: DataLoader,
@@ -19,14 +19,10 @@ def lr_finder(train_loader: DataLoader,
               start_lr: float = 1e-7,
               end_lr: float = 10,
               num_it: int = 100,
-<<<<<<< HEAD
               stop_div: bool = True,
               smooth_f: float = 0.05,
               weight_decay: float = 0
               ):
-=======
-              stop_div: bool = True):
->>>>>>> d52f2fd... Refactor: remove trailing whitespaces
     """Performs the learning rate range test.
     Arguments:
         train_loader (torch.utils.data.DataLoader): the training set data laoder.
@@ -137,6 +133,7 @@ if __name__ == '__main__':
                         help='number of batches to trim from the end')
     parser.add_argument('-weight_decay', type=float,
                         default=0, help='weight decay factor')
+    parser.add_argument('-net', type=str, required=True, help='network name')
     args = parser.parse_args()
 
     train_dataset = CamVid(
@@ -160,7 +157,7 @@ if __name__ == '__main__':
     train_loader = torch.utils.data.DataLoader(
         train_dataset, batch_size=args.b, num_workers=4)
 
-    net = UNet(3, train_dataset.class_num)
+    net = utils.get_model(args.net, 3, train_dataset.class_num)
     net = net.cuda()
 
     loss, lr = lr_finder(train_loader, net, start_lr=args.start_lr,
