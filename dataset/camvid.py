@@ -163,5 +163,3 @@ class CamVid(Dataset):
             label[mask] = cls_id_12
 
         return label
-
-data = CamVid('data', download=True)
