@@ -20,21 +20,21 @@ class CamVid(Dataset):
         """
 
         self.data_type = image_set
-        self.data_path = root
         self.transforms = transforms
         self.md5 = '2e796d442fe723192014ace89a1515b1'
         self.url = 'https://s3.amazonaws.com/fast-ai-imagelocal/camvid.tgz'
         self.filename = 'camvid.tgz'
 
         if download:
-            download_url(self.url, self.data_path, self.filename, md5=self.md5)
-            with tarfile.open(os.path.join(self.data_path, self.filename), "r") as tar:
-                tar.extractall(path=self.data_path)
+            download_url(self.url, root, self.filename, md5=self.md5)
+            with tarfile.open(os.path.join(root, self.filename), "r") as tar:
+                tar.extractall(path=root)
 
-        camvid_dir = os.path.join(self.data_path, 'camvid')
+        camvid_dir = os.path.join(root, 'camvid')
         if not os.path.isdir(camvid_dir):
             raise RuntimeError('Dataset not found or corrupted.' +
                                ' You can use download=True to download it')
+        self.data_path = camvid_dir
 
         self.label_IDs = {
 
