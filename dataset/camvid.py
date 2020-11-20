@@ -31,7 +31,7 @@ class CamVid(Dataset):
             with tarfile.open(os.path.join(self.data_path, self.filename), "r") as tar:
                 tar.extractall(path=self.data_path)
 
-        camvid_dir = os.path.join(self.root, 'camvid')
+        camvid_dir = os.path.join(self.data_path, 'camvid')
         if not os.path.isdir(camvid_dir):
             raise RuntimeError('Dataset not found or corrupted.' +
                                ' You can use download=True to download it')
