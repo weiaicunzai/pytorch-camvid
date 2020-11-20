@@ -46,12 +46,12 @@ if __name__ == '__main__':
     writer = SummaryWriter(log_dir=log_dir)
 
     train_dataset = CamVid(
-        'data'
+        'data',
         image_set='train',
         download=args.download
     )
     valid_dataset = CamVid(
-        'data'
+        'data',
         image_set='val',
         download=args.download
     )
