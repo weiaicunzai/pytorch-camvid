@@ -26,6 +26,8 @@ if __name__ == '__main__':
     parser.add_argument('-wd', type=float, default=0, help='training epoches')
     parser.add_argument('-resume', type=bool, default=False, help='if resume training')
     parser.add_argument('-net', type=str, required=True, help='if resume training')
+    parser.add_argument('-download', action='store_true', default=False,
+        help='whether to download camvid dataset')
     args = parser.parse_args()
 
     root_path = os.path.dirname(os.path.abspath(__file__))
@@ -44,12 +46,14 @@ if __name__ == '__main__':
     writer = SummaryWriter(log_dir=log_dir)
 
     train_dataset = CamVid(
-        settings.DATA_PATH,
-        'train'
+        'data'
+        image_set='train',
+        download=args.download
     )
     valid_dataset = CamVid(
-        settings.DATA_PATH,
-        'val'
+        'data'
+        image_set='val',
+        download=args.download
     )
 
     train_transforms = transforms.Compose([

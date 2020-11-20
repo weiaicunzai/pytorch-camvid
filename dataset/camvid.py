@@ -2,23 +2,39 @@ import os
 import cv2
 
 from torch.utils.data import Dataset
+from torchvision.datasets.utils import download_url
+from torchvision.datasets import VisionDataset
 import numpy as np
 
 class CamVid(Dataset):
-    def __init__(self, data_path, data_type='train', transforms=None):
+    def __init__(self, root, download=False, image_set='train', transforms=None):
         """
         Camvid dataset:https://course.fast.ai/datasets
         or simply wget https://s3.amazonaws.com/fast-ai-imagelocal/camvid.tgz
 
         Args:
             data_path: path to dataset folder
-            data_type: train datset or validation dataset, 'train', or 'val'
+            image_set: train datset or validation dataset, 'train', or 'val'
             transforms: data augmentations
         """
 
-        self.data_type = data_type
-        self.data_path = data_path
+        self.data_type = image_set
+        self.data_path = root
         self.transforms = transforms
+        self.md5 = '2e796d442fe723192014ace89a1515b1'
+        self.url = 'https://s3.amazonaws.com/fast-ai-imagelocal/camvid.tgz'
+        self.filename = 'camvid.tgz'
+
+        if download:
+            download_url(self.url, self.data_path, self.filename, md5=self.md5)
+            with tarfile.open(os.path.join(self.data_path, self.filename), "r") as tar:
+                tar.extractall(path=self.data_path)
+
+        camvid_dir = os.path.join(self.root, 'camvid')
+        if not os.path.isdir(camvid_dir):
+            raise RuntimeError('Dataset not found or corrupted.' +
+                               ' You can use download=True to download it')
+
         self.label_IDs = {
 
             # Sky
@@ -103,6 +119,9 @@ class CamVid(Dataset):
 
         self.class_num = len(self.class_names)
 
+    #def download_extract(self, url: str, root: str, filename: str, md5: str) -> None:
+
+
     def __getitem__(self, index):
 
         image_name = self.image_names[index]
@@ -144,3 +163,5 @@ class CamVid(Dataset):
             label[mask] = cls_id_12
 
         return label
+
+data = CamVid('data', download=True)
