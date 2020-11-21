@@ -113,7 +113,6 @@ class CamVid(Dataset):
         self._env = lmdb.open(self._root, readonly=True, lock=False)
 
         with self._env.begin(write=False) as txn:
-            #self._codes = json.loads(txn.get('codes'.encode()))
             valid = set(json.loads(txn.get('valid'.encode())))
             images = json.loads(txn.get('images'.encode()))
             self._shapes = json.loads(txn.get('shapes'.encode()))
