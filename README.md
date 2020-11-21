@@ -5,7 +5,7 @@ All experices run on CamVid dataset
 
 
 # Camvid dataset
-The [original Camvid dataset](http://mi.eng.cam.ac.uk/research/projects/VideoRec/CamVid/) have 367 training, 233 test images and 101 validation images, total 32 classes. In this project we will use the original training and test images as training set(600 images in total), and the original validation images(101 images) as test set.We use Camvid dataset provived by [fast.ai](https://course.fast.ai/datasets#image-localization), they already splited the training and validation dataset for us.
+The [original Camvid dataset](http://mi.eng.cam.ac.uk/research/projects/VideoRec/CamVid/) have 367 training, 233 test images and 101 validation images, total 32 classes. In this project we will use the original training and test images as training set(600 images in total), and the original validation images(101 images) as validation set.We use Camvid dataset provived by [fast.ai](https://course.fast.ai/datasets#image-localization), they already splited the training and validation dataset for us.
 
 
 Most image segmentation papers group the similar classes in the original Camvid dataset into one class,resulting total 12 classes:

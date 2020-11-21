@@ -9,3 +9,7 @@ all_scalars.json
 runs
 camvid
 .vscode
+camvid.tgz
+data.mdb
+lock.mdb
+data
