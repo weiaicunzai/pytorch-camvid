@@ -50,6 +50,7 @@ if __name__ == '__main__':
         image_set='train',
         download=args.download
     )
+    #valid_dataset = train_dataset
     valid_dataset = CamVid(
         'data',
         image_set='val',
@@ -57,15 +58,15 @@ if __name__ == '__main__':
     )
 
     train_transforms = transforms.Compose([
-        transforms.RandomRotation(value=train_dataset.ignore_index),
-        transforms.RandomScale(value=train_dataset.ignore_index),
-        transforms.RandomGaussianBlur(),
-        transforms.RandomHorizontalFlip(),
-        transforms.ColorJitter(),
-        transforms.Resize(settings.IMAGE_SIZE),
-        transforms.ToTensor(),
-        transforms.Normalize(settings.MEAN, settings.STD),
+            transforms.Resize(settings.IMAGE_SIZE),
+            transforms.RandomRotation(15, fill=train_dataset.ignore_index),
+            transforms.RandomGaussianBlur(),
+            transforms.RandomHorizontalFlip(),
+            transforms.ColorJitter(0.4, 0.4),
+            transforms.ToTensor(),
+            transforms.Normalize(settings.MEAN, settings.STD),
     ])
+
 
     valid_transforms = transforms.Compose([
         transforms.Resize(settings.IMAGE_SIZE),
@@ -76,8 +77,12 @@ if __name__ == '__main__':
     train_dataset.transforms = train_transforms
     valid_dataset.transforms = valid_transforms
 
+   # train_loader = torch.utils.data.DataLoader(
+   #     train_dataset, batch_size=args.b, num_workers=4)
+
     train_loader = torch.utils.data.DataLoader(
-        train_dataset, batch_size=args.b, num_workers=4)
+            train_dataset, batch_size=args.b, num_workers=8, shuffle=True)
+
     validation_loader = torch.utils.data.DataLoader(
         valid_dataset, batch_size=args.b, num_workers=4)
 
@@ -143,11 +148,11 @@ if __name__ == '__main__':
             ))
 
             n_iter = (epoch - 1) * iter_per_epoch + batch_idx + 1
-            utils.visulaize_lastlayer(
-                writer,
-                net,
-                n_iter,
-            )
+            #utils.visulaize_lastlayer(
+            #    writer,
+            #    net,
+            #    n_iter,
+            #)
 
         utils.visualize_scalar(
             writer,

@@ -95,38 +95,32 @@ class CamVid(Dataset):
         self._class_names = ['Sky', 'Building', 'Pole', 'Road', 'Pavement',
                             'Tree', 'SignSymbol', 'Fence', 'Car', 'Pedestrian',
                             'Bicyclist', 'Void']
+
+        self.class_num = len(self._class_names)
         self.ignore_index = self._class_names.index('Void')
 
-        if not os.path.exists(os.path.join(self._root, 'data.mdb')):
+        if not os.path.exists(os.path.join(self._root, self._image_set)):
             with tarfile.open(os.path.join(self._root, self._filename), "r") as tar:
                 tar.extractall(path=self._root)
 
             with open(os.path.join(self._root, 'camvid', 'codes.txt')) as f:
                 self._codes = [line.strip() for line in f.readlines()]
             # create lmdb dataset
-            print('Writing data into lmdb format to acclerate data loading process')
+            print('Writing {} data into lmdb format to acclerate data loading process'.format(self._image_set))
             self._create_lmdb()
+            #self._create_lmdb('val')
             print('Done...')
             shutil.rmtree(os.path.join(self._root, 'camvid'))
 
 
-        self._env = lmdb.open(self._root, readonly=True, lock=False)
+        lmdb_path = os.path.join(self._root, self._image_set)
+        #self._env = lmdb.open(lmdb_path, readonly=True, readahead=False, lock=False)
+        self._env = lmdb.open(lmdb_path, readonly=True, lock=False)
 
         with self._env.begin(write=False) as txn:
-            valid = set(json.loads(txn.get('valid'.encode())))
-            images = json.loads(txn.get('images'.encode()))
+            self._image_names = json.loads(txn.get('images'.encode()))
             self._shapes = json.loads(txn.get('shapes'.encode()))
-            self._image_names = []
-            for image in images:
-                if self._image_set == 'train':
-                    if image not in valid:
-                        self._image_names.append(image)
-                elif self._image_set == 'val':
-                    if image in valid:
-                        self._image_names.append(image)
 
-                else:
-                    raise RuntimeError('wrong image_set value')
 
     def __len__(self):
         return len(self._image_names)
@@ -189,17 +183,38 @@ class CamVid(Dataset):
 
 
     def _create_lmdb(self):
-        lmdb_map_size = 1 << 40
-        env = lmdb.open(self._root, map_size=lmdb_map_size)
+        # shapes, inage_names, label_names
+        with open(os.path.join(self._root, 'camvid', 'valid.txt')) as f:
+            valids = [line.strip() for line in f.readlines()]
 
-        # write images
+        lmdb_map_size = 1 << 40
+        lmdb_path = os.path.join(self._root, self._image_set)
+        env = lmdb.open(lmdb_path, map_size=lmdb_map_size)
+
         image_folder = os.path.join(self._root, 'camvid', 'images')
         label_folder = os.path.join(self._root, 'camvid', 'labels')
         image_names = os.listdir(image_folder)
-        image_names = [image_name for image_name in image_names if '.png' in image_name]
+
+        # get image_names according to image_set
+        if self._image_set == 'train':
+            tmp_names = []
+            for image_name in image_names:
+                if image_name not in valids and '.png' in image_name:
+                    tmp_names.append(image_name)
+            image_names = tmp_names
+
+
+        elif self._image_set == 'val':
+            image_names = [image_name for image_name in image_names if image_name in valids]
+
+        else:
+            raise RuntimeError('image set should only be train or set')
+
         label_names = [name.replace('.', '_P.') for name in image_names]
 
         image_pathes = [os.path.join(image_folder, name) for name in image_names]
+
+        self._shapes = {}
         self._write_lmdb(env, image_pathes, -1)
 
         label_pathes = [os.path.join(label_folder, name) for name in label_names]
@@ -207,10 +222,6 @@ class CamVid(Dataset):
 
         # write valid.txt and codes.txt
         with env.begin(write=True) as txn:
-            with open(os.path.join(self._root, 'camvid', 'valid.txt')) as f:
-                valids = [line.strip() for line in f.readlines()]
-                txn.put('valid'.encode(), json.dumps(valids).encode())
-
 
             txn.put('shapes'.encode(), json.dumps(self._shapes).encode())
             txn.put('labels'.encode(), json.dumps(label_names).encode())
