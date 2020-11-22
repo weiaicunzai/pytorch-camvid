@@ -136,15 +136,18 @@ class RandomRotation:
 
     """
 
-    def __init__(self, angle=10, fill=0):
+    def __init__(self, p=0.5, angle=10, fill=0):
 
         if not (isinstance(angle, numbers.Number) and angle > 0):
             raise ValueError('angle must be a positive number.')
 
         self.angle = angle
         self.value = fill
+        self.p = p
 
     def __call__(self, image, mask):
+        if random.random() < self.p:
+            return image, mask
 
         angle = random.uniform(-self.angle, self.angle)
         image_center = tuple(np.array(image.shape[1::-1]) / 2)
@@ -233,131 +236,6 @@ class RandomGaussianBlur:
             ksize += 1
 
         return ksize
-
-# class ColorJitter(torch.nn.Module):
-#     """Randomly change the brightness, contrast and saturation of an image.
-
-#     Args:
-#         brightness (float or tuple of float (min, max)): How much to jitter brightness.
-#             brightness_factor is chosen uniformly from [max(0, 1 - brightness), 1 + brightness]
-#             or the given [min, max]. Should be non negative numbers.
-#         contrast (float or tuple of float (min, max)): How much to jitter contrast.
-#             contrast_factor is chosen uniformly from [max(0, 1 - contrast), 1 + contrast]
-#             or the given [min, max]. Should be non negative numbers.
-#         saturation (float or tuple of float (min, max)): How much to jitter saturation.
-#             saturation_factor is chosen uniformly from [max(0, 1 - saturation), 1 + saturation]
-#             or the given [min, max]. Should be non negative numbers.
-#         hue (float or tuple of float (min, max)): How much to jitter hue.
-#             hue_factor is chosen uniformly from [-hue, hue] or the given [min, max].
-#             Should have 0<= hue <= 0.5 or -0.5 <= min <= max <= 0.5.
-#     """
-
-#     def __init__(self, brightness=0, contrast=0, saturation=0, hue=0):
-#         super().__init__()
-#         self.brightness = self._check_input(brightness, 'brightness')
-#         self.contrast = self._check_input(contrast, 'contrast')
-#         self.saturation = self._check_input(saturation, 'saturation')
-#         self.hue = self._check_input(hue, 'hue', center=0, bound=(-0.5, 0.5),
-#                                      clip_first_on_zero=False)
-
-#     @torch.jit.unused
-#     def _check_input(self, value, name, center=1, bound=(0, float('inf')), clip_first_on_zero=True):
-#         if isinstance(value, numbers.Number):
-#             if value < 0:
-#                 raise ValueError("If {} is a single number, it must be non negative.".format(name))
-#             value = [center - float(value), center + float(value)]
-#             if clip_first_on_zero:
-#                 value[0] = max(value[0], 0.0)
-#         elif isinstance(value, (tuple, list)) and len(value) == 2:
-#             if not bound[0] <= value[0] <= value[1] <= bound[1]:
-#                 raise ValueError("{} values should be between {}".format(name, bound))
-#         else:
-#             raise TypeError("{} should be a single number or a list/tuple with lenght 2.".format(name))
-
-#         # if value is 0 or (1., 1.) for brightness/contrast/saturation
-#         # or (0., 0.) for hue, do nothing
-#         if value[0] == value[1] == center:
-#             value = None
-#         return value
-
-#     @staticmethod
-#     @torch.jit.unused
-#     def get_params(brightness, contrast, saturation, hue):
-#         """Get a randomized transform to be applied on image.
-
-#         Arguments are same as that of __init__.
-
-#         Returns:
-#             Transform which randomly adjusts brightness, contrast and
-#             saturation in a random order.
-#         """
-#         transforms = []
-
-#         if brightness is not None:
-#             brightness_factor = random.uniform(brightness[0], brightness[1])
-#             transforms.append(Lambda(lambda img: F.adjust_brightness(img, brightness_factor)))
-
-#         if contrast is not None:
-#             contrast_factor = random.uniform(contrast[0], contrast[1])
-#             transforms.append(Lambda(lambda img: F.adjust_contrast(img, contrast_factor)))
-
-#         if saturation is not None:
-#             saturation_factor = random.uniform(saturation[0], saturation[1])
-#             transforms.append(Lambda(lambda img: F.adjust_saturation(img, saturation_factor)))
-
-#         if hue is not None:
-#             hue_factor = random.uniform(hue[0], hue[1])
-#             transforms.append(Lambda(lambda img: F.adjust_hue(img, hue_factor)))
-
-#         random.shuffle(transforms)
-#         transform = Compose(transforms)
-
-#         return transform
-
-
-#     def forward(self, img, mask):
-#         """
-#         Args:
-#             img (PIL Image or Tensor): Input image.
-
-#         Returns:
-#             PIL Image or Tensor: Color jittered image.
-#         """
-#         fn_idx = torch.randperm(4)
-#         img = Image.from_numpy(img)
-#         for fn_id in fn_idx:
-#             if fn_id == 0 and self.brightness is not None:
-#                 brightness = self.brightness
-#                 brightness_factor = torch.tensor(1.0).uniform_(brightness[0], brightness[1]).item()
-#                 print(brightness_factor)
-#                 img = F.adjust_brightness(img, brightness_factor)
-
-#             if fn_id == 1 and self.contrast is not None:
-#                 contrast = self.contrast
-#                 contrast_factor = torch.tensor(1.0).uniform_(contrast[0], contrast[1]).item()
-#                 img = F.adjust_contrast(img, contrast_factor)
-
-#             if fn_id == 2 and self.saturation is not None:
-#                 saturation = self.saturation
-#                 saturation_factor = torch.tensor(1.0).uniform_(saturation[0], saturation[1]).item()
-#                 img = F.adjust_saturation(img, saturation_factor)
-
-#             if fn_id == 3 and self.hue is not None:
-#                 hue = self.hue
-#                 hue_factor = torch.tensor(1.0).uniform_(hue[0], hue[1]).item()
-#                 img = F.adjust_hue(img, hue_factor)
-
-#         img = np.array(img)
-#         return img, mask
-
-
-#     def __repr__(self):
-#         format_string = self.__class__.__name__ + '('
-#         format_string += 'brightness={0}'.format(self.brightness)
-#         format_string += ', contrast={0}'.format(self.contrast)
-#         format_string += ', saturation={0}'.format(self.saturation)
-#         format_string += ', hue={0})'.format(self.hue)
-#         return format_string
 
 def adjust_hue(img, hue_factor):
     """Adjust hue of an image.
@@ -499,7 +377,7 @@ class ColorJitter(object):
             hue_factor is chosen uniformly from [-hue, hue] or the given [min, max].
             Should have 0<= hue <= 0.5 or -0.5 <= min <= max <= 0.5.
     """
-    def __init__(self, brightness=0, contrast=0, saturation=0, hue=0):
+    def __init__(self, p=0.5, brightness=0, contrast=0, saturation=0, hue=0):
         self.brightness = self._check_input(brightness, 'brightness')
         self.contrast = self._check_input(contrast, 'contrast')
         self.saturation = self._check_input(saturation, 'saturation')
@@ -514,6 +392,7 @@ class ColorJitter(object):
         if self.hue is not None:
             warnings.warn(
                 'Hue jitter enabled. Will slow down loading immensely.')
+        self.p = p
 
     def _check_input(self,
                      value,
@@ -588,6 +467,9 @@ class ColorJitter(object):
         Returns:
             numpy ndarray: Color jittered image.
         """
+        if random.random() < self.p:
+            return img, mask
+
         transform = self.get_params(self.brightness, self.contrast,
                                     self.saturation, self.hue)
         return transform(img, mask)
@@ -599,78 +481,6 @@ class ColorJitter(object):
         format_string += ', saturation={0}'.format(self.saturation)
         format_string += ', hue={0})'.format(self.hue)
         return format_string
-#class ColorJitter:
-#
-#    """Randomly change the brightness, contrast and saturation of an image
-#    Args:
-#        brightness: (float or tuple of float(min, max)): how much to jitter
-#            brightness, brightness_factor is choosen uniformly from[max(0, 1-brightness),
-#            1 + brightness] or the given [min, max], Should be non negative numbe
-#        contrast: same as brightness
-#        saturation: same as birghtness
-#        hue: same as brightness
-#    """
-#
-#    def __init__(self, brightness=0.4, contrast=0.4, saturation=0.4, hue=0.4):
-#        self.brightness = self._check_input(brightness)
-#        self.contrast = self._check_input(contrast)
-#        self.saturation = self._check_input(saturation)
-#        self.hue = self._check_input(hue)
-#
-#    def _check_input(self, value):
-#
-#        if isinstance(value, numbers.Number):
-#            assert value >= 0, 'value should be non negative'
-#            value = [max(0, 1 - value), 1 + value]
-#
-#        elif isinstance(value, (list, tuple)):
-#            assert len(value) == 2, 'brightness should be a tuple/list with 2 elements'
-#            assert 0 <= value[0] <= value[1], 'max should be larger than or equal to min,\
-#            and both larger than 0'
-#
-#        else:
-#            raise TypeError('need to pass int, float, list or tuple, instead got{}'.format(type(value).__name__))
-#
-#        return value
-#
-#    def __call__(self, img, mask):
-#        """
-#        Args:
-#            img to be jittered
-#        Returns:
-#            jittered img
-#        """
-#
-#        img_dtype = img.dtype
-#        h_factor = random.uniform(*self.hue)
-#        b_factor = random.uniform(*self.brightness)
-#        s_factor = random.uniform(*self.saturation)
-#        c_factor = random.uniform(*self.contrast)
-#
-#        img = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
-#        img = img.astype('float32')
-#
-#        #h
-#        img[:, :, 0] *= h_factor
-#        img[:, :, 0] = np.clip(img[:, :, 0], 0, 179)
-#
-#        #s
-#        img[:, :, 1] *= s_factor
-#        img[:, :, 1] = np.clip(img[:, :, 1], 0, 255)
-#
-#        #v
-#        img[:, :, 2] *= b_factor
-#        img[:, :, 2] = np.clip(img[:, :, 2], 0, 255)
-#
-#        img = img.astype(img_dtype)
-#        img = cv2.cvtColor(img, cv2.COLOR_HSV2BGR)
-#
-#        #c
-#        img = img * c_factor
-#        img = img.astype(img_dtype)
-#        img = np.clip(img, 0, 255)
-#
-#        return img, mask
 
 class ToTensor:
     """convert an opencv image (h, w, c) ndarray range from 0 to 255 to a pytorch

@@ -8,12 +8,13 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 from torch.utils.tensorboard import SummaryWriter
+import numpy as np
 
 import transforms
 import utils
 from conf import settings
 from dataset.camvid import CamVid
-from metrics import Metrics
+from utils import mean_iou
 
 if __name__ == '__main__':
 
@@ -50,12 +51,12 @@ if __name__ == '__main__':
         image_set='train',
         download=args.download
     )
-    #valid_dataset = train_dataset
     valid_dataset = CamVid(
         'data',
         image_set='val',
         download=args.download
     )
+    print()
 
     train_transforms = transforms.Compose([
             transforms.Resize(settings.IMAGE_SIZE),
@@ -67,7 +68,6 @@ if __name__ == '__main__':
             transforms.Normalize(settings.MEAN, settings.STD),
     ])
 
-
     valid_transforms = transforms.Compose([
         transforms.Resize(settings.IMAGE_SIZE),
         transforms.ToTensor(),
@@ -77,14 +77,11 @@ if __name__ == '__main__':
     train_dataset.transforms = train_transforms
     valid_dataset.transforms = valid_transforms
 
-   # train_loader = torch.utils.data.DataLoader(
-   #     train_dataset, batch_size=args.b, num_workers=4)
-
     train_loader = torch.utils.data.DataLoader(
             train_dataset, batch_size=args.b, num_workers=8, shuffle=True)
 
     validation_loader = torch.utils.data.DataLoader(
-        valid_dataset, batch_size=args.b, num_workers=4)
+        valid_dataset, batch_size=args.b, num_workers=8)
 
     net = utils.get_model(args.net, 3, train_dataset.class_num)
 
@@ -107,7 +104,6 @@ if __name__ == '__main__':
         optimizer, max_lr=args.lr, steps_per_epoch=len(train_loader), epochs=args.e)
     loss_fn = nn.CrossEntropyLoss()
 
-    metrics = Metrics(valid_dataset.class_num, valid_dataset.ignore_index)
     best_iou = 0
 
     trained_epochs = 0
@@ -148,11 +144,11 @@ if __name__ == '__main__':
             ))
 
             n_iter = (epoch - 1) * iter_per_epoch + batch_idx + 1
-            #utils.visulaize_lastlayer(
-            #    writer,
-            #    net,
-            #    n_iter,
-            #)
+            utils.visulaize_lastlayer(
+                writer,
+                net,
+                n_iter,
+            )
 
         utils.visualize_scalar(
             writer,
@@ -168,11 +164,19 @@ if __name__ == '__main__':
             epoch,
         )
         utils.visualize_param_hist(writer, net, epoch)
-        print('time for training epoch {} : {}'.format(epoch, time.time() - start))
+        print('time for training epoch {} : {:.2f}s'.format(epoch, time.time() - start))
 
         net.eval()
         test_loss = 0.0
 
+        test_start = time.time()
+        iou = 0
+        all_acc = 0
+        acc = 0
+        best_iou = 0
+
+        cls_names = valid_dataset.class_names
+        ig_idx = valid_dataset.ignore_index
         with torch.no_grad():
             for batch_idx, (images, masks) in enumerate(validation_loader):
 
@@ -185,15 +189,25 @@ if __name__ == '__main__':
                 test_loss += loss.item()
 
                 preds = preds.argmax(dim=1)
-                preds = preds.view(-1).cpu().data.numpy()
-                masks = masks.view(-1).cpu().data.numpy()
-                metrics.add(preds, masks)
+                tmp_all_acc, tmp_acc, tmp_mean_iou = mean_iou(
+                    preds.cpu(), masks.cpu(), len(cls_names), ig_idx
+                )
+                all_acc += tmp_all_acc
+                acc += tmp_acc
+                iou += tmp_mean_iou
                 n_iter = (epoch - 1) * iter_per_epoch + batch_idx + 1
 
-        miou = metrics.iou()
-        precision = metrics.precision()
-        recall = metrics.recall()
-        metrics.clear()
+        test_finish = time.time()
+        print('Evaluation time comsumed:{:.2f}s'.format(test_finish - test_start))
+        print('Iou for each class:')
+        print('%, '.join([':'.join([str(n), str(round(i, 2))]) for n, i in zip(cls_names, iou)]))
+        iou = iou.tolist()
+        iou = [i for i in iou if iou.index(i) != ig_idx]
+        miou = sum(iou) / len(iou)
+        print('Mean_iou {:.2f}%'.format(miou))
+        print('Acc for each class:')
+        print('%, '.join([':'.join([str(n), str(round(a, 2))]) for n, a in zip(cls_names, acc)]))
+        print('All_acc {:.2f}%'.format(all_acc))
 
         utils.visualize_scalar(
             writer,
@@ -204,24 +218,17 @@ if __name__ == '__main__':
 
         utils.visualize_scalar(
             writer,
+            'Test/Acc',
+            all_acc,
+            epoch,
+        )
+
+        utils.visualize_scalar(
+            writer,
             'Test/Loss',
             test_loss / len(valid_dataset),
             epoch,
         )
-
-        eval_msg = (
-            'Test set Average loss: {loss:.4f}, '
-            'mIOU: {miou:.4f}, '
-            'recall: {recall:.4f}, '
-            'precision: {precision:.4f}'
-        )
-
-        print(eval_msg.format(
-            loss=test_loss / len(valid_dataset),
-            miou=miou,
-            recall=recall,
-            precision=precision
-        ))
 
         if best_iou < miou and epoch > args.e // 2:
             best_iou = miou
