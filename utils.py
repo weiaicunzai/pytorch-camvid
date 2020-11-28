@@ -226,3 +226,21 @@ def mean_iou(results, gt_seg_maps, num_classes, ignore_index, nan_to_num=None):
         return all_acc, np.nan_to_num(acc, nan=nan_to_num), \
             np.nan_to_num(iou, nan=nan_to_num)
     return all_acc, acc, iou
+
+def plot_dataset(dataset, out_dir, class_id=4):
+    transforms = dataset.transforms
+    for i in random.choices(range(len(dataset)), k=9):
+        count += 1
+        img, label = dataset[i]
+        print(np.unique(label))
+
+        label = label.copy()
+        label[label == class_id] = 255
+        label[label != 255] = 0
+        img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+        img = np.concatenate((img, label), axis=1)
+        cv2.imwrite(os.path.join(out_dir, 'label{}.png'.format(count)), img)
+
+
+
+    dataset.transforms = transforms
