@@ -28,7 +28,7 @@ class CamVid(Dataset):
         self._root = root
 
         if download:
-            download_url(self.url, self._root, self.filename, md5=self.md5)
+            download_url(self._url, self._root, self._filename, md5=self._md5)
 
         self._label_IDs = {
             # Sky
@@ -113,10 +113,8 @@ class CamVid(Dataset):
                 label_path = img.replace('images', 'labels').replace('.', '_P.')
                 label = cv2.imread(label_path, 0)
                 label = self._group_ids(label).astype(np.uint8)
-                #resized_mask = cv2.resize(label, size, interpolation=cv2.INTER_NEAREST)
 
                 cv2.imwrite(label_path, label)
-                #cv2.imwrite(img, resized_img)
 
         with open(os.path.join(self._root, 'camvid', 'valid.txt')) as f:
             valids = [line.strip() for line in f.readlines()]

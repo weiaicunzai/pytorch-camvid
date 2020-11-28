@@ -31,7 +31,7 @@ class CamVid(Dataset):
         self._root = root
 
         if download:
-            download_url(self.url, self._root, self.filename, md5=self.md5)
+            download_url(self._url, self._root, self._filename, md5=self._md5)
 
 
 
