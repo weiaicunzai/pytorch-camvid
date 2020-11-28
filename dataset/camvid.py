@@ -2,12 +2,10 @@ import os
 import tarfile
 import shutil
 import cv2
-import json
 import glob
 
 from torch.utils.data import Dataset
 from torchvision.datasets.utils import download_url
-from torchvision.datasets import VisionDataset
 import numpy as np
 from conf import settings
 
@@ -31,8 +29,6 @@ class CamVid(Dataset):
 
         if download:
             download_url(self.url, self._root, self.filename, md5=self.md5)
-
-
 
         self._label_IDs = {
             # Sky
@@ -113,15 +109,14 @@ class CamVid(Dataset):
             size = settings.IMAGE_SIZE
             for img in self._image_names:
                 image = cv2.imread(img)
-                resized_img = cv2.resize(image, size)
 
                 label_path = img.replace('images', 'labels').replace('.', '_P.')
                 label = cv2.imread(label_path, 0)
                 label = self._group_ids(label).astype(np.uint8)
-                resized_mask = cv2.resize(label, size, interpolation=cv2.INTER_NEAREST)
+                #resized_mask = cv2.resize(label, size, interpolation=cv2.INTER_NEAREST)
 
-                cv2.imwrite(label_path, resized_mask)
-                cv2.imwrite(img, resized_img)
+                cv2.imwrite(label_path, label)
+                #cv2.imwrite(img, resized_img)
 
         with open(os.path.join(self._root, 'camvid', 'valid.txt')) as f:
             valids = [line.strip() for line in f.readlines()]
@@ -172,6 +167,7 @@ class CamVid(Dataset):
 
         image = cv2.imread(image_path)
         label = cv2.imread(label_path, 0)
+
 
         if self.transforms:
                 image, label = self.transforms(image, label)

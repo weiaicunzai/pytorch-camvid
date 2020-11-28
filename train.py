@@ -3,7 +3,6 @@ import os
 import time
 import re
 
-import cv2
 import torch
 import torch.nn as nn
 import torch.optim as optim
@@ -14,6 +13,7 @@ import transforms
 import utils
 from conf import settings
 from dataset.camvid import CamVid
+#from dataset.camvid_lmdb import CamVid
 from utils import mean_iou
 
 if __name__ == '__main__':
@@ -78,10 +78,10 @@ if __name__ == '__main__':
     valid_dataset.transforms = valid_transforms
 
     train_loader = torch.utils.data.DataLoader(
-            train_dataset, batch_size=args.b, num_workers=8, shuffle=True)
+            train_dataset, batch_size=args.b, num_workers=4, shuffle=True)
 
     validation_loader = torch.utils.data.DataLoader(
-        valid_dataset, batch_size=args.b, num_workers=8)
+        valid_dataset, batch_size=args.b, num_workers=4)
 
     net = utils.get_model(args.net, 3, train_dataset.class_num)
 
@@ -195,7 +195,6 @@ if __name__ == '__main__':
                 all_acc += tmp_all_acc
                 acc += tmp_acc
                 iou += tmp_mean_iou
-                n_iter = (epoch - 1) * iter_per_epoch + batch_idx + 1
 
         test_finish = time.time()
         print('Evaluation time comsumed:{:.2f}s'.format(test_finish - test_start))
