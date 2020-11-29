@@ -39,13 +39,12 @@ def visualize_scalar(writer, name, scalar, n_iter):
     """visualize scalar"""
     writer.add_scalar(name, scalar, n_iter)
 
-
 def visualize_param_hist(writer, net, n_iter):
     """visualize histogram of params"""
     for name, param in net.named_parameters():
         layer, attr = os.path.splitext(name)
         attr = attr[1:]
-        writer.add_histogram("{}/{}".format(layer, attr), param, n_iter)
+        writer.add_histogram("{}/{}".format(layer, attr), param.detach().cpu().numpy(), n_iter)
 
 def compute_mean_and_std(dataset):
     """Compute dataset mean and std, and normalize it
@@ -219,9 +218,9 @@ def mean_iou(results, gt_seg_maps, num_classes, ignore_index, nan_to_num=None):
         total_area_union += area_union
         total_area_pred_label += area_pred_label
         total_area_label += area_label
-    all_acc = total_area_intersect.sum() / total_area_label.sum()
-    acc = total_area_intersect / total_area_label
-    iou = total_area_intersect / total_area_union
+    all_acc = total_area_intersect.sum() / (total_area_label.sum() + 1e-8)
+    acc = total_area_intersect / (total_area_label + 1e-8)
+    iou = total_area_intersect / (total_area_union + 1e-8)
     if nan_to_num is not None:
         return all_acc, np.nan_to_num(acc, nan=nan_to_num), \
             np.nan_to_num(iou, nan=nan_to_num)

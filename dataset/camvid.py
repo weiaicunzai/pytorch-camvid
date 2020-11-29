@@ -92,8 +92,10 @@ class CamVid(Dataset):
                             'Tree', 'SignSymbol', 'Fence', 'Car', 'Pedestrian',
                             'Bicyclist', 'Void']
 
-        self.class_num = len(self.class_names)
         self.ignore_index = self.class_names.index('Void')
+
+        self.class_names = self.class_names[:-1]
+        self.class_num = len(self.class_names)
 
         image_fp = os.path.join(self._root, 'camvid', 'images', '*.png')
         if not os.path.exists(os.path.join(self._root, 'camvid')):

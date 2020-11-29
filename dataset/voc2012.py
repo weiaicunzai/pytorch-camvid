@@ -1,17 +1,19 @@
 
 
-import os 
+import os
 import cv2
+import pickle
 import numpy as np
+import lmdb
 from torch.utils.data import Dataset
+import torch
 
-class VOC2012(Dataset):
+class VOC2012Aug(Dataset):
 
-    def __init__(self, data_folder,
-                       dataset,
+    def __init__(self, root,
+                       image_set,
                        transforms=None,
-                       ignore_label=255,
-                       class_num=21):
+                       ignore_label=255):
         """voc2012 dataset, use augmented voc2012 dataset, resulting:
         training: 10582
         val: 1449
@@ -20,52 +22,57 @@ class VOC2012(Dataset):
 
         Args:
             data_folder: root folder for voc2012,  path_to/VOCdevkit/VOC2012
-            dataset: train dataset or val dataset
+            image_set: train dataset or val dataset
             transforms: image and mask transformation
         """
 
-        assert dataset in ['train', 'val']
+        assert image_set in ['train', 'val']
 
-        self.ignore_lable = ignore_label
-        self.class_num = class_num
-        self._trans = transforms
-        self._img_folder = os.path.join(data_folder, 'JPEGImages')
-        self._seg_folder = os.path.join(data_folder, 'SegmentationClassAugRaw')
-        self._datasplit_folder = os.path.join(data_folder, 'ImageSets', 'Segmentation')
-        self._filenames = self._get_filenames(dataset)
+        self.class_names = ('background', 'aeroplane', 'bicycle', 'bird', 'boat',
+                        'bottle', 'bus', 'car', 'cat', 'chair',
+                        'cow', 'diningtable', 'dog', 'horse',
+                        'motorbike', 'person', 'pottedplant',
+                        'sheep', 'sofa', 'train', 'tvmonitor', 'void')
+
+        self.class_names = self.class_names[:-1]
+        self.class_num = len(self.class_names)
+        self.ignore_index = 255
+
+        self.transforms = transforms
+
+        self._root = root
+        self._image_set = image_set
+        lmdb_path = os.path.join(self._root, self._image_set)
+        self._env = lmdb.open(lmdb_path, map_size=1099511627776, readonly=True, lock=False)
+
+        cache_file = os.path.join(lmdb_path, '_cache')
+
+        if os.path.isfile(cache_file):
+            self._image_names = pickle.load(open(cache_file, 'rb'))
+        else:
+            with self._env.begin(write=False) as txn:
+                self._image_names= [key.decode() for key in txn.cursor().iternext(keys=True, values=False) \
+                        if '.jpg' in key.decode()]
+                pickle.dump(self._image_names, open(cache_file, 'wb'))
 
     def __getitem__(self, index):
 
-        img_path = os.path.join(self._img_folder, self._filenames[index] + '.jpg')
-        seg_path = os.path.join(self._seg_folder, self._filenames[index] + '.png')
+        image_name = self._image_names[index]
+        label_name = image_name.replace('.jpg', '.png')
+        with self._env.begin(write=False) as txn:
+            image_data = txn.get(image_name.encode())
+            label_data = txn.get(label_name.encode())
 
-        img = cv2.imread(img_path)
-        seg = cv2.imread(seg_path, 0)
+            image = np.frombuffer(image_data, np.uint8)
+            label = np.frombuffer(label_data, np.uint8)
 
-        #label = np.zeros((*seg.shape, self.class_num), dtype=np.uint8)
+            image = cv2.imdecode(image, -1)
+            label = cv2.imdecode(label, -1)
 
-        #not necessarily a one-hot encoding, since 255 pixel value is igored
-        #for cls_idx in range(self.class_num):
-        #    label[:, :, cls_idx][seg == cls_idx] = 1
-        #    label[:, :, cls_idx][seg != cls_idx] = 0
+        if self.transforms:
+                image, label = self.transforms(image, label)
 
-        return img, seg
+        return image, label
 
     def __len__(self):
-        return len(self._filenames)
-
-    def _get_filenames(self, dataset):
-
-        res = []
-        dataset = 'trainaug.txt' if dataset == 'train' else 'val.txt'
-
-        with open(os.path.join(self._datasplit_folder, dataset)) as f:
-                for line in f:
-                    res.append(line.strip())
-
-        return res
-
-
-
-
-
+        return len(self._image_names)

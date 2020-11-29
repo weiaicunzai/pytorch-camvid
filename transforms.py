@@ -5,6 +5,7 @@ import numbers
 from collections.abc import Iterable
 import warnings
 import types
+import collections
 
 import cv2
 import numpy as np
@@ -13,6 +14,12 @@ import torch
 import torchvision.transforms.functional as F
 from PIL import Image, ImageEnhance
 
+_cv2_pad_to_str = {
+    'constant': cv2.BORDER_CONSTANT,
+    'edge': cv2.BORDER_REPLICATE,
+    'reflect': cv2.BORDER_REFLECT_101,
+    'symmetric': cv2.BORDER_REFLECT
+}
 
 class Compose:
     """Composes several transforms together.
@@ -59,6 +66,185 @@ class Resize:
         resized_mask = cv2.resize(mask, self.size, interpolation=cv2.INTER_NEAREST)
 
         return resized_img, resized_mask
+
+def crop(img, i, j, h, w):
+    """Crop the given PIL Image.
+    Args:
+        img (numpy ndarray): Image to be cropped.
+        i: Upper pixel coordinate.
+        j: Left pixel coordinate.
+        h: Height of the cropped image.
+        w: Width of the cropped image.
+    Returns:
+        numpy ndarray: Cropped image.
+    """
+    if not _is_numpy_image(img):
+        raise TypeError('img should be numpy image. Got {}'.format(type(img)))
+
+    if len(img.shape) == 3:
+        return img[i:i + h, j:j + w, :]
+    if len(img.shape) == 2:
+        return img[i:i + h, j:j + w]
+
+def pad(img, padding, fill=0, padding_mode='constant'):
+    r"""Pad the given numpy ndarray on all sides with specified padding mode and fill value.
+    Args:
+        img (numpy ndarray): image to be padded.
+        padding (int or tuple): Padding on each border. If a single int is provided this
+            is used to pad all borders. If tuple of length 2 is provided this is the padding
+            on left/right and top/bottom respectively. If a tuple of length 4 is provided
+            this is the padding for the left, top, right and bottom borders
+            respectively.
+        fill: Pixel fill value for constant fill. Default is 0. If a tuple of
+            length 3, it is used to fill R, G, B channels respectively.
+            This value is only used when the padding_mode is constant
+        padding_mode: Type of padding. Should be: constant, edge, reflect or symmetric. Default is constant.
+            - constant: pads with a constant value, this value is specified with fill
+            - edge: pads with the last value on the edge of the image
+            - reflect: pads with reflection of image (without repeating the last value on the edge)
+                       padding [1, 2, 3, 4] with 2 elements on both sides in reflect mode
+                       will result in [3, 2, 1, 2, 3, 4, 3, 2]
+            - symmetric: pads with reflection of image (repeating the last value on the edge)
+                         padding [1, 2, 3, 4] with 2 elements on both sides in symmetric mode
+                         will result in [2, 1, 1, 2, 3, 4, 4, 3]
+    Returns:
+        Numpy image: padded image.
+    """
+    if not _is_numpy_image(img):
+        raise TypeError('img should be numpy ndarray. Got {}'.format(
+            type(img)))
+    if not isinstance(padding, (numbers.Number, tuple, list)):
+        raise TypeError('Got inappropriate padding arg')
+    if not isinstance(fill, (numbers.Number, str, tuple)):
+        raise TypeError('Got inappropriate fill arg')
+    if not isinstance(padding_mode, str):
+        raise TypeError('Got inappropriate padding_mode arg')
+    if isinstance(padding,
+                  collections.Sequence) and len(padding) not in [2, 4]:
+        raise ValueError(
+            "Padding must be an int or a 2, or 4 element tuple, not a " +
+            "{} element tuple".format(len(padding)))
+
+    assert padding_mode in ['constant', 'edge', 'reflect', 'symmetric'], \
+        'Padding mode should be either constant, edge, reflect or symmetric'
+
+    if isinstance(padding, int):
+        pad_left = pad_right = pad_top = pad_bottom = padding
+    if isinstance(padding, collections.Sequence) and len(padding) == 2:
+        pad_left = pad_right = padding[0]
+        pad_top = pad_bottom = padding[1]
+    if isinstance(padding, collections.Sequence) and len(padding) == 4:
+        pad_left = padding[0]
+        pad_top = padding[1]
+        pad_right = padding[2]
+        pad_bottom = padding[3]
+    #if len(img.shape) == 2:
+    #    return cv2.copyMakeBorder(img,
+    #                               top=pad_top,
+    #                               bottom=pad_bottom,
+    #                               left=pad_left,
+    #                               right=pad_right,
+    #                               borderType=_cv2_pad_to_str[padding_mode],
+    #                               value=fill)[:, :, np.newaxis]
+    #else:
+    return cv2.copyMakeBorder(img,
+                              top=pad_top,
+                              bottom=pad_bottom,
+                              left=pad_left,
+                              right=pad_right,
+                              borderType=_cv2_pad_to_str[padding_mode],
+                              value=fill)
+
+class RandomCrop(object):
+    """Crop the given numpy ndarray at a random location.
+    Args:
+        size (sequence or int): Desired output size of the crop. If size is an
+            int instead of sequence like (h, w), a square crop (size, size) is
+            made.
+        padding (int or sequence, optional): Optional padding on each border
+            of the image. Default is None, i.e no padding. If a sequence of length
+            4 is provided, it is used to pad left, top, right, bottom borders
+            respectively. If a sequence of length 2 is provided, it is used to
+            pad left/right, top/bottom borders, respectively.
+        pad_if_needed (boolean): It will pad the image if smaller than the
+            desired size to avoid raising an exception.
+        fill: Pixel fill value for constant fill. Default is 0. If a tuple of
+            length 3, it is used to fill R, G, B channels respectively.
+            This value is only used when the padding_mode is constant
+        padding_mode: Type of padding. Should be: constant, edge, reflect or symmetric. Default is constant.
+             - constant: pads with a constant value, this value is specified with fill
+             - edge: pads with the last value on the edge of the image
+             - reflect: pads with reflection of image (without repeating the last value on the edge)
+                padding [1, 2, 3, 4] with 2 elements on both sides in reflect mode
+                will result in [3, 2, 1, 2, 3, 4, 3, 2]
+             - symmetric: pads with reflection of image (repeating the last value on the edge)
+                padding [1, 2, 3, 4] with 2 elements on both sides in symmetric mode
+                will result in [2, 1, 1, 2, 3, 4, 4, 3]
+    """
+    def __init__(self,
+                 size,
+                 padding=None,
+                 pad_if_needed=False,
+                 fill=0,
+                 padding_mode='constant'):
+        if isinstance(size, numbers.Number):
+            self.size = (int(size), int(size))
+        else:
+            self.size = size
+        self.padding = padding
+        self.pad_if_needed = pad_if_needed
+        self.fill = fill
+        self.padding_mode = padding_mode
+
+    @staticmethod
+    def get_params(img, output_size):
+        """Get parameters for ``crop`` for a random crop.
+        Args:
+            img (numpy ndarray): Image to be cropped.
+            output_size (tuple): Expected output size of the crop.
+        Returns:
+            tuple: params (i, j, h, w) to be passed to ``crop`` for random crop.
+        """
+        h, w = img.shape[:2]
+        th, tw = output_size
+        if w == tw and h == th:
+            return 0, 0, h, w
+
+        i = random.randint(0, h - th)
+        j = random.randint(0, w - tw)
+        return i, j, th, tw
+
+    def __call__(self, img, mask):
+        """
+        Args:
+            img (numpy ndarray): Image to be cropped.
+        Returns:
+            numpy ndarray: Cropped image.
+        """
+        if self.padding is not None:
+            img = pad(img, self.padding, self.fill, self.padding_mode)
+            mask = pad(mask, self.padding, self.fill, self.padding_mode)
+
+        # pad the width if needed
+        if self.pad_if_needed and img.shape[1] < self.size[1]:
+            img = pad(img, (self.size[1] - img.shape[1], 0), self.fill,
+                        self.padding_mode)
+            mask = pad(mask, (self.size[1] - mask.shape[1], 0), self.fill,
+                        self.padding_mode)
+        # pad the height if needed
+        if self.pad_if_needed and img.shape[0] < self.size[0]:
+            img = pad(img, (0, self.size[0] - img.shape[0]), self.fill,
+                        self.padding_mode)
+            mask = pad(mask, (0, self.size[0] - mask.shape[0]), self.fill,
+                        self.padding_mode)
+
+        i, j, h, w = self.get_params(img, self.size)
+
+        return crop(img, i, j, h, w), crop(mask, i, j, h, w)
+
+    def __repr__(self):
+        return self.__class__.__name__ + '(size={0}, padding={1})'.format(
+            self.size, self.padding)
 
 class RandomScale:
     """Randomly scaling an image (from 0.5 to 2.0]), the output image and mask

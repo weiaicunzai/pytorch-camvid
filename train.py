@@ -13,7 +13,9 @@ import transforms
 import utils
 from conf import settings
 from dataset.camvid import CamVid
+from dataset.voc2012 import VOC2012Aug
 #from dataset.camvid_lmdb import CamVid
+from lr_scheduler import PolyLR
 from utils import mean_iou
 
 if __name__ == '__main__':
@@ -21,7 +23,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('-b', type=int, default=10,
                         help='batch size for dataloader')
-    parser.add_argument('-lr', type=float, default=5e-4,
+    parser.add_argument('-lr', type=float, default=0.007,
                         help='initial learning rate')
     parser.add_argument('-e', type=int, default=120, help='training epoches')
     parser.add_argument('-wd', type=float, default=0, help='training epoches')
@@ -46,20 +48,29 @@ if __name__ == '__main__':
 
     writer = SummaryWriter(log_dir=log_dir)
 
-    train_dataset = CamVid(
-        'data',
-        image_set='train',
-        download=args.download
+    #train_dataset = CamVid(
+    #    'data',
+    #    image_set='train',
+    #    download=args.download
+    #)
+    #valid_dataset = CamVid(
+    #    'data',
+    #    image_set='val',
+    #    download=args.download
+    #)
+    train_dataset = VOC2012Aug(
+        'voc_aug',
+        image_set='train'
     )
-    valid_dataset = CamVid(
-        'data',
-        image_set='val',
-        download=args.download
+    valid_dataset = VOC2012Aug(
+        'voc_aug',
+        image_set='val'
     )
     print()
 
     train_transforms = transforms.Compose([
-            transforms.Resize(settings.IMAGE_SIZE),
+            #transforms.Resize(settings.IMAGE_SIZE),
+            transforms.RandomCrop(513, pad_if_needed=True),
             transforms.RandomRotation(15, fill=train_dataset.ignore_index),
             transforms.RandomGaussianBlur(),
             transforms.RandomHorizontalFlip(),
@@ -69,7 +80,8 @@ if __name__ == '__main__':
     ])
 
     valid_transforms = transforms.Compose([
-        transforms.Resize(settings.IMAGE_SIZE),
+        #transforms.Resize(settings.IMAGE_SIZE),
+        transforms.RandomCrop(513, pad_if_needed=True),
         transforms.ToTensor(),
         transforms.Normalize(settings.MEAN, settings.STD),
     ])
@@ -78,10 +90,10 @@ if __name__ == '__main__':
     valid_dataset.transforms = valid_transforms
 
     train_loader = torch.utils.data.DataLoader(
-            train_dataset, batch_size=args.b, num_workers=4, shuffle=True)
+            train_dataset, batch_size=args.b, num_workers=4, shuffle=True, pin_memory=True)
 
     validation_loader = torch.utils.data.DataLoader(
-        valid_dataset, batch_size=args.b, num_workers=4)
+        valid_dataset, batch_size=args.b, num_workers=4, pin_memory=True)
 
     net = utils.get_model(args.net, 3, train_dataset.class_num)
 
@@ -97,12 +109,13 @@ if __name__ == '__main__':
     tensor = torch.Tensor(1, 3, *settings.IMAGE_SIZE)
     utils.visualize_network(writer, net, tensor)
 
-    optimizer = optim.AdamW(net.parameters(), lr=args.lr, weight_decay=args.wd)
+    #optimizer = optim.Adam(net.parameters(), lr=args.lr, weight_decay=args.wd)
+    optimizer = optim.SGD(net.parameters(), lr=args.lr, momentum=0.9, weight_decay=5e-4)
     iter_per_epoch = len(train_dataset) / args.b
 
-    train_scheduler = optim.lr_scheduler.OneCycleLR(
-        optimizer, max_lr=args.lr, steps_per_epoch=len(train_loader), epochs=args.e)
-    loss_fn = nn.CrossEntropyLoss()
+    max_iter = args.e * len(train_loader)
+    train_scheduler = PolyLR(optimizer, max_iter=max_iter, power=0.9)
+    loss_fn = nn.CrossEntropyLoss(ignore_index=train_dataset.ignore_index)
 
     best_iou = 0
 
@@ -111,7 +124,7 @@ if __name__ == '__main__':
     if args.resume:
         trained_epochs = int(
             re.search('([0-9]+)-(best|regular).pth', weight_path).group(1))
-        train_scheduler.step(trained_epochs * len(train_loader))
+        #train_scheduler.step(trained_epochs * len(train_loader))
 
     for epoch in range(trained_epochs + 1, args.e + 1):
         start = time.time()
@@ -119,7 +132,11 @@ if __name__ == '__main__':
         net.train()
 
         ious = 0
+        batch_start = time.time()
+        total_load_time = 0
         for batch_idx, (images, masks) in enumerate(train_loader):
+
+            batch_finish = time.time()
 
             optimizer.zero_grad()
 
@@ -134,14 +151,18 @@ if __name__ == '__main__':
             train_scheduler.step()
 
             print(('Training Epoch:{epoch} [{trained_samples}/{total_samples}] '
-                    'Lr:{lr:0.6f} Loss:{loss:0.4f} Beta1:{beta:0.4f}').format(
+                    #'Lr:{lr:0.6f} Loss:{loss:0.4f} Beta1:{beta:0.4f} Time:{time:0.2f}s').format(
+                    'Lr:{lr:0.6f} Loss:{loss:0.4f} Data load time:{time:0.2f}s').format(
                 loss=loss.item(),
                 epoch=epoch,
                 trained_samples=batch_idx * args.b + len(images),
                 total_samples=len(train_dataset),
                 lr=optimizer.param_groups[0]['lr'],
-                beta=optimizer.param_groups[0]['betas'][0]
+                #beta=optimizer.param_groups[0]['betas'][0],
+                time=batch_finish - batch_start
             ))
+
+            total_load_time += batch_finish - batch_start
 
             n_iter = (epoch - 1) * iter_per_epoch + batch_idx + 1
             utils.visulaize_lastlayer(
@@ -150,6 +171,8 @@ if __name__ == '__main__':
                 n_iter,
             )
 
+            batch_start = time.time()
+
         utils.visualize_scalar(
             writer,
             'Train/LearningRate',
@@ -157,14 +180,22 @@ if __name__ == '__main__':
             epoch,
         )
 
-        utils.visualize_scalar(
-            writer,
-            'Train/Beta1',
-            optimizer.param_groups[0]['betas'][0],
-            epoch,
-        )
+        #utils.visualize_scalar(
+        #    writer,
+        #    'Train/Beta1',
+        #    optimizer.param_groups[0]['betas'][0],
+        #    epoch,
+        #)
+        total_training = time.time() - start,
         utils.visualize_param_hist(writer, net, epoch)
-        print('time for training epoch {} : {:.2f}s'.format(epoch, time.time() - start))
+        print(('Total time for training epoch {} : {:.2f}s,'
+               'total time for loading data: {:.2f}s',
+               '{:2f}% time used for loading data').format(
+            epoch,
+            total_load_time,
+            total_training,
+            total_load_time / total_training
+        ))
 
         net.eval()
         test_loss = 0.0
@@ -178,7 +209,7 @@ if __name__ == '__main__':
         cls_names = valid_dataset.class_names
         ig_idx = valid_dataset.ignore_index
         with torch.no_grad():
-            for batch_idx, (images, masks) in enumerate(validation_loader):
+            for images, masks in validation_loader:
 
                 images = images.cuda()
                 masks = masks.cuda()
@@ -190,7 +221,7 @@ if __name__ == '__main__':
 
                 preds = preds.argmax(dim=1)
                 tmp_all_acc, tmp_acc, tmp_mean_iou = mean_iou(
-                    preds.cpu(), masks.cpu(), len(cls_names), ig_idx
+                    preds.detach().cpu().numpy(), masks.detach().cpu().numpy(), len(cls_names), ig_idx
                 )
                 all_acc += tmp_all_acc
                 acc += tmp_acc
