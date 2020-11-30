@@ -98,6 +98,9 @@ class FCN(nn.Module):
             self.score_pool4 = nn.Conv2d(512, class_num, 1)
             self.x8upscore = nn.ConvTranspose2d(class_num, class_num, 16, stride=8)
 
+        else:
+            raise ValueError('wrong net_type value, should be one of "8s", "16s", "32s"')
+
     def forward(self, x):
         output = self.conv1(x)
         output = self.pool1(output) # 1/2
