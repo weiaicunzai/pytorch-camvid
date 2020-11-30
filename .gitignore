@@ -15,3 +15,5 @@ lock.mdb
 data
 tmp
 voc_aug
+nohup.out
+run.sh
