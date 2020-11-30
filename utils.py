@@ -2,9 +2,11 @@
 import os
 import glob
 import re
+import random
 
 import numpy as np
 import torch
+import cv2
 
 
 @torch.no_grad()
@@ -44,7 +46,8 @@ def visualize_param_hist(writer, net, n_iter):
     for name, param in net.named_parameters():
         layer, attr = os.path.splitext(name)
         attr = attr[1:]
-        writer.add_histogram("{}/{}".format(layer, attr), param.detach().cpu().numpy(), n_iter)
+        #writer.add_histogram("{}/{}".format(layer, attr), param.detach().cpu().numpy(), n_iter)
+        writer.add_histogram("{}/{}".format(layer, attr), param, n_iter)
 
 def compute_mean_and_std(dataset):
     """Compute dataset mean and std, and normalize it
@@ -226,20 +229,38 @@ def mean_iou(results, gt_seg_maps, num_classes, ignore_index, nan_to_num=None):
             np.nan_to_num(iou, nan=nan_to_num)
     return all_acc, acc, iou
 
-def plot_dataset(dataset, out_dir, class_id=4):
+def plot_dataset(dataset, out_dir, num=9, class_id=4, ignore_idx=255):
     transforms = dataset.transforms
-    for i in random.choices(range(len(dataset)), k=9):
-        count += 1
+    for idx in range(num):
+        i = random.choice(range(len(dataset)))
         img, label = dataset[i]
         print(np.unique(label))
 
-        label = label.copy()
+        label = label
+        ignore_mask = label == ignore_idx
+        if 0 != class_id:
+            label[ignore_mask] = 0
+        else:
+            label[ignore_mask] = 1
+
         label[label == class_id] = 255
         label[label != 255] = 0
-        img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+        label = cv2.cvtColor(label, cv2.COLOR_GRAY2BGR)
         img = np.concatenate((img, label), axis=1)
-        cv2.imwrite(os.path.join(out_dir, 'label{}.png'.format(count)), img)
+        cv2.imwrite(os.path.join(out_dir, 'label{}.png'.format(idx)), img)
 
 
 
     dataset.transforms = transforms
+
+def print_eval(class_names, results):
+    assert len(class_names) == len(results)
+    msg = []
+    for cls_idx, (name, res) in enumerate(zip(class_names, results)):
+        msg.append('{}(id {}): {:.4f}'.format(name, cls_idx, res))
+
+    #msg = msg.strip()
+    #msg = msg[:-1]
+    msg = 'Total {} classes '.format(len(results)) + ', '.join(msg)
+
+    print(msg)

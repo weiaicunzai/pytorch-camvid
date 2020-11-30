@@ -16,7 +16,7 @@ from dataset.camvid import CamVid
 from dataset.voc2012 import VOC2012Aug
 #from dataset.camvid_lmdb import CamVid
 from lr_scheduler import PolyLR
-from utils import mean_iou
+from metric import eval_metrics
 
 if __name__ == '__main__':
 
@@ -48,29 +48,29 @@ if __name__ == '__main__':
 
     writer = SummaryWriter(log_dir=log_dir)
 
-    #train_dataset = CamVid(
-    #    'data',
-    #    image_set='train',
-    #    download=args.download
-    #)
-    #valid_dataset = CamVid(
-    #    'data',
-    #    image_set='val',
-    #    download=args.download
-    #)
-    train_dataset = VOC2012Aug(
-        'voc_aug',
-        image_set='train'
+    train_dataset = CamVid(
+        'data',
+        image_set='train',
+        download=args.download
     )
-    valid_dataset = VOC2012Aug(
-        'voc_aug',
-        image_set='val'
+    valid_dataset = CamVid(
+        'data',
+        image_set='val',
+        download=args.download
     )
+    #train_dataset = VOC2012Aug(
+    #    'voc_aug',
+    #    image_set='train'
+    #)
+    #valid_dataset = VOC2012Aug(
+    #    'voc_aug',
+    #    image_set='val'
+    #)
     print()
 
     train_transforms = transforms.Compose([
-            #transforms.Resize(settings.IMAGE_SIZE),
-            transforms.RandomCrop(513, pad_if_needed=True),
+            transforms.Resize(settings.IMAGE_SIZE),
+            #transforms.RandomCrop(513, pad_if_needed=True),
             transforms.RandomRotation(15, fill=train_dataset.ignore_index),
             transforms.RandomGaussianBlur(),
             transforms.RandomHorizontalFlip(),
@@ -80,8 +80,8 @@ if __name__ == '__main__':
     ])
 
     valid_transforms = transforms.Compose([
-        #transforms.Resize(settings.IMAGE_SIZE),
-        transforms.RandomCrop(513, pad_if_needed=True),
+        transforms.Resize(settings.IMAGE_SIZE),
+        #transforms.RandomCrop(513, pad_if_needed=True),
         transforms.ToTensor(),
         transforms.Normalize(settings.MEAN, settings.STD),
     ])
@@ -150,9 +150,10 @@ if __name__ == '__main__':
             optimizer.step()
             train_scheduler.step()
 
+            print(batch_finish - batch_start)
             print(('Training Epoch:{epoch} [{trained_samples}/{total_samples}] '
                     #'Lr:{lr:0.6f} Loss:{loss:0.4f} Beta1:{beta:0.4f} Time:{time:0.2f}s').format(
-                    'Lr:{lr:0.6f} Loss:{loss:0.4f} Data load time:{time:0.2f}s').format(
+                    'Lr:{lr:0.6f} Loss:{loss:0.4f} Data loading time:{time:0.4f}s').format(
                 loss=loss.item(),
                 epoch=epoch,
                 trained_samples=batch_idx * args.b + len(images),
@@ -186,15 +187,18 @@ if __name__ == '__main__':
         #    optimizer.param_groups[0]['betas'][0],
         #    epoch,
         #)
-        total_training = time.time() - start,
+        #print(total_load_time, total_training)
         utils.visualize_param_hist(writer, net, epoch)
-        print(('Total time for training epoch {} : {:.2f}s,'
-               'total time for loading data: {:.2f}s',
-               '{:2f}% time used for loading data').format(
+
+        finish = time.time()
+        total_training = finish - start
+        print(('Total time for training epoch {} : {:.2f}s, '
+               'total time for loading data: {:.2f}s, '
+               '{:.2f}% time used for loading data').format(
             epoch,
-            total_load_time,
             total_training,
-            total_load_time / total_training
+            total_load_time,
+            total_load_time / total_training * 100
         ))
 
         net.eval()
@@ -220,24 +224,38 @@ if __name__ == '__main__':
                 test_loss += loss.item()
 
                 preds = preds.argmax(dim=1)
-                tmp_all_acc, tmp_acc, tmp_mean_iou = mean_iou(
-                    preds.detach().cpu().numpy(), masks.detach().cpu().numpy(), len(cls_names), ig_idx
+                #tmp_all_acc, tmp_acc, tmp_mean_iou = eval_metrics(
+                #    , masks.detach().cpu().numpy(), len(cls_names), ig_idx
+                #)
+                tmp_all_acc, tmp_acc, tmp_iou = eval_metrics(
+                    preds.detach().cpu().numpy(),
+                    masks.detach().cpu().numpy(),
+                    len(cls_names),
+                    ignore_index=ig_idx,
+                    metrics='mIoU',
+                    nan_to_num=-1
                 )
-                all_acc += tmp_all_acc
-                acc += tmp_acc
-                iou += tmp_mean_iou
 
+                all_acc += tmp_all_acc * len(images)
+                acc += tmp_acc * len(images)
+                iou += tmp_iou * len(images)
+
+        all_acc /= len(validation_loader.dataset)
+        acc /= len(validation_loader.dataset)
+        iou /= len(validation_loader.dataset)
         test_finish = time.time()
         print('Evaluation time comsumed:{:.2f}s'.format(test_finish - test_start))
         print('Iou for each class:')
-        print('%, '.join([':'.join([str(n), str(round(i, 2))]) for n, i in zip(cls_names, iou)]))
-        iou = iou.tolist()
-        iou = [i for i in iou if iou.index(i) != ig_idx]
-        miou = sum(iou) / len(iou)
-        print('Mean_iou {:.2f}%'.format(miou))
+        utils.print_eval(cls_names, iou)
         print('Acc for each class:')
-        print('%, '.join([':'.join([str(n), str(round(a, 2))]) for n, a in zip(cls_names, acc)]))
-        print('All_acc {:.2f}%'.format(all_acc))
+        utils.print_eval(cls_names, acc)
+        #print('%, '.join([':'.join([str(n), str(round(i, 2))]) for n, i in zip(cls_names, iou)]))
+        #iou = iou.tolist()
+        #iou = [i for i in iou if iou.index(i) != ig_idx]
+        miou = sum(iou) / len(iou)
+        print('Mean iou {:.4f}  All Pixel Acc {:.4f}'.format(miou, all_acc))
+        #print('%, '.join([':'.join([str(n), str(round(a, 2))]) for n, a in zip(cls_names, acc)]))
+        #print('All acc {:.2f}%'.format(all_acc))
 
         utils.visualize_scalar(
             writer,

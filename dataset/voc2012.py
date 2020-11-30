@@ -32,9 +32,8 @@ class VOC2012Aug(Dataset):
                         'bottle', 'bus', 'car', 'cat', 'chair',
                         'cow', 'diningtable', 'dog', 'horse',
                         'motorbike', 'person', 'pottedplant',
-                        'sheep', 'sofa', 'train', 'tvmonitor', 'void')
+                        'sheep', 'sofa', 'train', 'tvmonitor')
 
-        self.class_names = self.class_names[:-1]
         self.class_num = len(self.class_names)
         self.ignore_index = 255
 
