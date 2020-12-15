@@ -10,6 +10,7 @@ import cv2
 
 import transforms
 from dataset import CamVid, VOC2012Aug
+from conf import settings
 
 
 @torch.no_grad()
@@ -159,7 +160,7 @@ def get_model(model_name, input_channels, class_num):
         from models.segnet import SegNet
         net = SegNet(input_channels, class_num)
 
-    elif model_name == 'segnet':
+    elif model_name == 'deeplabv3plus':
         from models.deeplabv3plus import deeplabv3plus
         net = deeplabv3plus(class_num)
 
