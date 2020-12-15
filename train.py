@@ -29,6 +29,7 @@ if __name__ == '__main__':
     parser.add_argument('-wd', type=float, default=0, help='training epoches')
     parser.add_argument('-resume', type=bool, default=False, help='if resume training')
     parser.add_argument('-net', type=str, required=True, help='if resume training')
+    parser.add_argument('-dataset', type=str, default='Camvid', help='dataset name')
     parser.add_argument('-download', action='store_true', default=False,
         help='whether to download camvid dataset')
     args = parser.parse_args()
@@ -48,16 +49,16 @@ if __name__ == '__main__':
 
     writer = SummaryWriter(log_dir=log_dir)
 
-    train_dataset = CamVid(
-        'data',
-        image_set='train',
-        download=args.download
-    )
-    valid_dataset = CamVid(
-        'data',
-        image_set='val',
-        download=args.download
-    )
+    #train_dataset = CamVid(
+    #    'data',
+    #    image_set='train',
+    #    download=args.download
+    #)
+    #valid_dataset = CamVid(
+    #    'data',
+    #    image_set='val',
+    #    download=args.download
+    #)
     #train_dataset = VOC2012Aug(
     #    'voc_aug',
     #    image_set='train'
@@ -68,32 +69,35 @@ if __name__ == '__main__':
     #)
     print()
 
-    train_transforms = transforms.Compose([
-            transforms.Resize(settings.IMAGE_SIZE),
-            #transforms.RandomCrop(513, pad_if_needed=True),
-            transforms.RandomRotation(15, fill=train_dataset.ignore_index),
-            transforms.RandomGaussianBlur(),
-            transforms.RandomHorizontalFlip(),
-            transforms.ColorJitter(0.4, 0.4),
-            transforms.ToTensor(),
-            transforms.Normalize(settings.MEAN, settings.STD),
-    ])
+    #train_transforms = transforms.Compose([
+    #        transforms.RandomHorizontalFlip(),
+    #        transforms.RandomRotation(15, fill=train_dataset.ignore_index),
+    #        transforms.RandomScaleCrop(settings.IMAGE_SIZE),
+    #        transforms.RandomGaussianBlur(),
+    #        transforms.ColorJitter(0.4, 0.4),
+    #        transforms.ToTensor(),
+    #        transforms.Normalize(settings.MEAN, settings.STD),
+    #])
 
-    valid_transforms = transforms.Compose([
-        transforms.Resize(settings.IMAGE_SIZE),
-        #transforms.RandomCrop(513, pad_if_needed=True),
-        transforms.ToTensor(),
-        transforms.Normalize(settings.MEAN, settings.STD),
-    ])
+    #valid_transforms = transforms.Compose([
+    #    transforms.RandomScaleCrop(settings.IMAGE_SIZE),
+    #    transforms.ToTensor(),
+    #    transforms.Normalize(settings.MEAN, settings.STD),
+    #])
 
-    train_dataset.transforms = train_transforms
-    valid_dataset.transforms = valid_transforms
+    #train_dataset.transforms = train_transforms
+    #valid_dataset.transforms = valid_transforms
 
-    train_loader = torch.utils.data.DataLoader(
-            train_dataset, batch_size=args.b, num_workers=4, shuffle=True, pin_memory=True)
+    #train_loader = torch.utils.data.DataLoader(
+    #        train_dataset, batch_size=args.b, num_workers=4, shuffle=True, pin_memory=True)
 
-    validation_loader = torch.utils.data.DataLoader(
-        valid_dataset, batch_size=args.b, num_workers=4, pin_memory=True)
+    #validation_loader = torch.utils.data.DataLoader(
+    #    valid_dataset, batch_size=args.b, num_workers=4, pin_memory=True)
+    train_loader = utils.data_loader(args, 'train')
+    train_dataset = train_loader.dataset
+
+    val_loader = utils.data_loader(args, 'val')
+    valid_dataset = val_loader.dataset
 
     net = utils.get_model(args.net, 3, train_dataset.class_num)
 
@@ -148,12 +152,10 @@ if __name__ == '__main__':
             loss.backward()
 
             optimizer.step()
-            train_scheduler.step()
 
-            print(batch_finish - batch_start)
             print(('Training Epoch:{epoch} [{trained_samples}/{total_samples}] '
                     #'Lr:{lr:0.6f} Loss:{loss:0.4f} Beta1:{beta:0.4f} Time:{time:0.2f}s').format(
-                    'Lr:{lr:0.6f} Loss:{loss:0.4f} Data loading time:{time:0.4f}s').format(
+                    'Lr:{lr:0.8f} Loss:{loss:0.4f} Data loading time:{time:0.4f}s').format(
                 loss=loss.item(),
                 epoch=epoch,
                 trained_samples=batch_idx * args.b + len(images),
@@ -162,6 +164,7 @@ if __name__ == '__main__':
                 #beta=optimizer.param_groups[0]['betas'][0],
                 time=batch_finish - batch_start
             ))
+            train_scheduler.step()
 
             total_load_time += batch_finish - batch_start
 

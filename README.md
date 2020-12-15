@@ -37,4 +37,4 @@ segnet
 |Dataset|Network|Parameters|mIOU|
 |:-----:|:-----:|:--------:|:--:|
 |Camvid|UNet|34.5M|0.6296|
-|Camvid|SegNet|29.4M|0.5913|
+|Camvid|SegNet|29.4M|0.6100|

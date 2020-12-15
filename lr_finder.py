@@ -134,28 +134,32 @@ if __name__ == '__main__':
     parser.add_argument('-weight_decay', type=float,
                         default=0, help='weight decay factor')
     parser.add_argument('-net', type=str, required=True, help='network name')
+    parser.add_argument('-dataset', type=str, default='Camvid', help='dataset name')
+
     args = parser.parse_args()
 
-    train_dataset = CamVid(
-        settings.DATA_PATH,
-        'train'
-    )
+    #train_dataset = CamVid(
+    #    settings.DATA_PATH,
+    #    'train'
+    #)
 
-    train_transforms = transforms.Compose([
-        transforms.RandomRotation(value=train_dataset.ignore_index),
-        transforms.RandomScale(value=train_dataset.ignore_index),
-        transforms.RandomGaussianBlur(),
-        transforms.RandomHorizontalFlip(),
-        transforms.ColorJitter(),
-        transforms.Resize(settings.IMAGE_SIZE),
-        transforms.ToTensor(),
-        transforms.Normalize(settings.MEAN, settings.STD),
-    ])
+    #train_transforms = transforms.Compose([
+    #    transforms.RandomRotation(value=train_dataset.ignore_index),
+    #    transforms.RandomScale(value=train_dataset.ignore_index),
+    #    transforms.RandomGaussianBlur(),
+    #    transforms.RandomHorizontalFlip(),
+    #    transforms.ColorJitter(),
+    #    transforms.Resize(settings.IMAGE_SIZE),
+    #    transforms.ToTensor(),
+    #    transforms.Normalize(settings.MEAN, settings.STD),
+    #])
 
-    train_dataset.transforms = train_transforms
+    #train_dataset.transforms = train_transforms
 
-    train_loader = torch.utils.data.DataLoader(
-        train_dataset, batch_size=args.b, num_workers=4)
+    #train_loader = torch.utils.data.DataLoader(
+    #    train_dataset, batch_size=args.b, num_workers=4)
+    train_loader = utils.data_loader(args, 'train')
+    train_dataset = train_loader.dataset
 
     net = utils.get_model(args.net, 3, train_dataset.class_num)
     net = net.cuda()

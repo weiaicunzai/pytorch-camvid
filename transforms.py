@@ -227,15 +227,27 @@ class RandomCrop(object):
 
         # pad the width if needed
         if self.pad_if_needed and img.shape[1] < self.size[1]:
-            img = pad(img, (self.size[1] - img.shape[1], 0), self.fill,
+            left_pad = int((self.size[1] - img.shape[1]) / 2)
+            right_pad = self.size[1] - img.shape[1] - left_pad
+            #img = pad(img, (self.size[1] - img.shape[1], 0), self.fill,
+            #            self.padding_mode)
+            img = pad(img, (left_pad, 0, right_pad, 0), self.fill,
                         self.padding_mode)
-            mask = pad(mask, (self.size[1] - mask.shape[1], 0), self.fill,
+            #mask = pad(mask, (self.size[1] - mask.shape[1], 0), self.fill,
+            #            self.padding_mode)
+            mask = pad(mask, (left_pad, 0, right_pad, 0), self.fill,
                         self.padding_mode)
         # pad the height if needed
         if self.pad_if_needed and img.shape[0] < self.size[0]:
-            img = pad(img, (0, self.size[0] - img.shape[0]), self.fill,
+            top_pad = int((self.size[0] - img.shape[0]) / 2)
+            bot_pad = self.size[0] - img.shape[0] - top_pad
+            #img = pad(img, (0, self.size[0] - img.shape[0]), self.fill,
+            #            self.padding_mode)
+            #mask = pad(mask, (0, self.size[0] - mask.shape[0]), self.fill,
+            #            self.padding_mode)
+            img = pad(img, (0, top_pad, 0, bot_pad), self.fill,
                         self.padding_mode)
-            mask = pad(mask, (0, self.size[0] - mask.shape[0]), self.fill,
+            mask = pad(mask, (0, top_pad, 0, bot_pad), self.fill,
                         self.padding_mode)
 
         i, j, h, w = self.get_params(img, self.size)
@@ -246,71 +258,71 @@ class RandomCrop(object):
         return self.__class__.__name__ + '(size={0}, padding={1})'.format(
             self.size, self.padding)
 
-class RandomScale:
-    """Randomly scaling an image (from 0.5 to 2.0]), the output image and mask
-    shape will be the same as the input image and mask shape. If the
-    scaled image is larger than the input image, randomly crop the scaled
-    image.If the scaled image is smaller than the input image, pad the scaled
-    image.
-
-    Args:
-        size: expected output size of each edge
-        scale: range of size of the origin size cropped
-        value: value to fill the mask when resizing,
-               should use ignore class index
-    """
-
-    def __init__(self, scale=(0.5, 2.0), value=0):
-
-        if not isinstance(scale, Iterable) and len(scale) == 2:
-            raise TypeError('scale should be iterable with size 2 or int')
-
-        self.value = value
-        self.scale = scale
-
-    def __call__(self, img, mask):
-        oh, ow = img.shape[:2]
-
-        # scale image
-        scale = random.uniform(*self.scale)
-        img = cv2.resize(img, (0, 0), fx=scale, fy=scale)
-        mask = cv2.resize(mask, (0, 0), fx=scale, fy=scale,
-                          interpolation=cv2.INTER_NEAREST)
-
-        h, w = img.shape[:2]
-
-        # pad image and mask
-        diff_h = max(0, oh - h)
-        diff_w = max(0, ow - w)
-
-        img = cv2.copyMakeBorder(
-            img,
-            diff_h // 2,
-            diff_h - diff_h // 2,
-            diff_w // 2,
-            diff_w - diff_w // 2,
-            cv2.BORDER_CONSTANT,
-            value=[0, 0, 0]
-        )
-        mask = cv2.copyMakeBorder(
-            mask,
-            diff_h // 2,
-            diff_h - diff_h // 2,
-            diff_w // 2,
-            diff_w - diff_w // 2,
-            cv2.BORDER_CONSTANT,
-            value=self.value
-        )
-
-        h, w = img.shape[:2]
-
-        # crop image and mask
-        y1 = random.randint(0, h - oh)
-        x1 = random.randint(0, w - ow)
-        img = img[y1: y1 + oh, x1: x1 + ow]
-        mask = mask[y1: y1 + oh, x1: x1 + ow]
-
-        return img, mask
+#class RandomScale:
+#    """Randomly scaling an image (from 0.5 to 2.0]), the output image and mask
+#    shape will be the same as the input image and mask shape. If the
+#    scaled image is larger than the input image, randomly crop the scaled
+#    image.If the scaled image is smaller than the input image, pad the scaled
+#    image.
+#
+#    Args:
+#        size: expected output size of each edge
+#        scale: range of size of the origin size cropped
+#        value: value to fill the mask when resizing,
+#               should use ignore class index
+#    """
+#
+#    def __init__(self, scale=(0.5, 2.0), value=0):
+#
+#        if not isinstance(scale, Iterable) and len(scale) == 2:
+#            raise TypeError('scale should be iterable with size 2 or int')
+#
+#        self.value = value
+#        self.scale = scale
+#
+#    def __call__(self, img, mask):
+#        oh, ow = img.shape[:2]
+#
+#        # scale image
+#        scale = random.uniform(*self.scale)
+#        img = cv2.resize(img, (0, 0), fx=scale, fy=scale)
+#        mask = cv2.resize(mask, (0, 0), fx=scale, fy=scale,
+#                          interpolation=cv2.INTER_NEAREST)
+#
+#        h, w = img.shape[:2]
+#
+#        # pad image and mask
+#        diff_h = max(0, oh - h)
+#        diff_w = max(0, ow - w)
+#
+#        img = cv2.copyMakeBorder(
+#            img,
+#            diff_h // 2,
+#            diff_h - diff_h // 2,
+#            diff_w // 2,
+#            diff_w - diff_w // 2,
+#            cv2.BORDER_CONSTANT,
+#            value=[0, 0, 0]
+#        )
+#        mask = cv2.copyMakeBorder(
+#            mask,
+#            diff_h // 2,
+#            diff_h - diff_h // 2,
+#            diff_w // 2,
+#            diff_w - diff_w // 2,
+#            cv2.BORDER_CONSTANT,
+#            value=self.value
+#        )
+#
+#        h, w = img.shape[:2]
+#
+#        # crop image and mask
+#        y1 = random.randint(0, h - oh)
+#        x1 = random.randint(0, w - ow)
+#        img = img[y1: y1 + oh, x1: x1 + ow]
+#        mask = mask[y1: y1 + oh, x1: x1 + ow]
+#
+#        return img, mask
 
 class RandomRotation:
     """Rotate the image by angle
@@ -332,7 +344,7 @@ class RandomRotation:
         self.p = p
 
     def __call__(self, image, mask):
-        if random.random() < self.p:
+        if random.random() > self.p:
             return image, mask
 
         angle = random.uniform(-self.angle, self.angle)
@@ -348,6 +360,29 @@ class RandomRotation:
         )
 
         return image, mask
+
+class RandomVerticalFlip:
+    """Horizontally flip the given opencv image with given probability p.
+    and does the same to mask
+
+    Args:
+        p: probability of the image being flipped
+    """
+    def __init__(self, p=0.5):
+        self.p = p
+
+    def __call__(self, img, mask):
+        """
+        Args:
+            the image to be flipped
+        Returns:
+            flipped image
+        """
+        if random.random() < self.p:
+            img = cv2.flip(img, 0)
+            mask = cv2.flip(mask, 0)
+
+        return img, mask
 
 class RandomHorizontalFlip:
     """Horizontally flip the given opencv image with given probability p.
@@ -723,3 +758,141 @@ class Normalize:
         img.sub_(mean[:, None, None]).div_(std[:, None, None])
 
         return img, mask
+
+
+class RandomScaleCrop:
+    """Randomly scaling an image (from 0.5 to 2.0]), the output image and mask
+    shape will be the same as the input image and mask shape. If the
+    scaled image is larger than the input image, randomly crop the scaled
+    image.If the scaled image is smaller than the input image, pad the scaled
+    image.
+
+    Args:
+        size: expected output size of each edge
+        scale: range of size of the origin size cropped
+        value: value to fill the mask when resizing,
+               should use ignore class index
+    """
+
+    def __init__(self, crop_size, scale=(0.5, 2.0), value=0, padding_mode='constant'):
+
+        if not isinstance(scale, Iterable) and len(scale) == 2:
+            raise TypeError('scale should be iterable with size 2 or int')
+
+        self.fill = value
+        self.scale = scale
+        self.crop_size = crop_size
+        self.padding_mode = padding_mode
+
+    @staticmethod
+    def get_params(img, output_size):
+        """Get parameters for ``crop`` for a random crop.
+        Args:
+            img (numpy ndarray): Image to be cropped.
+            output_size (tuple): Expected output size of the crop.
+        Returns:
+            tuple: params (i, j, h, w) to be passed to ``crop`` for random crop.
+        """
+        h, w = img.shape[:2]
+        th, tw = output_size
+        if w == tw and h == th:
+            return 0, 0, h, w
+
+        i = random.randint(0, h - th)
+        j = random.randint(0, w - tw)
+        return i, j, th, tw
+
+    def __call__(self, img, mask):
+
+        scale = random.uniform(self.scale[0], self.scale[1])
+
+        crop_size = int(self.crop_size / scale)
+
+        if img.shape[1] < crop_size:
+            left_pad = int((crop_size - img.shape[1]) / 2)
+            right_pad = crop_size - img.shape[1] - left_pad
+            img = pad(img, (left_pad, 0, right_pad, 0), 0,
+                        self.padding_mode)
+            mask = pad(mask, (left_pad, 0, right_pad, 0), self.fill,
+                        self.padding_mode)
+        # pad the height if needed
+        if img.shape[0] < crop_size:
+            top_pad = int((crop_size - img.shape[0]) / 2)
+            bot_pad = crop_size - img.shape[0] - top_pad
+            img = pad(img, (0, top_pad, 0, bot_pad), 0,
+                        self.padding_mode)
+            mask = pad(mask, (0, top_pad, 0, bot_pad), self.fill,
+                        self.padding_mode)
+
+        i, j, h, w = self.get_params(img, (crop_size, crop_size))
+        img = crop(img, i, j, h, w)
+        mask = crop(mask, i, j, h, w)
+
+        img = cv2.resize(img, (self.crop_size, self.crop_size))
+        mask = cv2.resize(mask, (self.crop_size, self.crop_size), interpolation=cv2.INTER_NEAREST)
+
+
+        return img, mask
+
+#from dataset.camvid import CamVid
+#
+#
+#train_dataset = CamVid(
+#        'data',
+#        image_set='train'
+#)
+#
+#transform = RandomScaleCrop(473)
+#
+#train_dataset.transforms = transform
+#
+#import cv2
+#import time
+#start = time.time()
+#for i in range(100):
+#    img, mask = train_dataset[i]
+#
+#finish = time.time()
+#print(100 // (finish - start))
+#
+#    #cv2.imwrite('test/img{}.png'.format(i), img)
+#    #cv2.imwrite('test/mask{}.png'.format(i), mask / mask.max() * 255)
+#
+#
+#
+
+#img = cv2.imread('/data/by/datasets/original/Warwick QU Dataset (Released 2016_07_08)/testB_17.bmp')
+##img = cv2.imread('/data/by/pytorch-camvid/data/camvid/images/0001TP_006870.png')
+##img = cv2.resize(img, (0, 0), fx=0.1, fy=0.1)
+#print(img.shape)
+#mask = np.random.randint(0, 2, size=img.shape[:2])
+#print(mask.shape)
+#trans = RandomScaleCrop(473)
+#trans = RandomRotation(p=1)
+#trans = Resize(100)
+
+
+
+# Glas transforms
+#train_transforms = Compose([
+#            #transforms.Resize(settings.IMAGE_SIZE),
+#            RandomVerticalFlip(),
+#            RandomHorizontalFlip(),
+#            RandomRotation(45, fill=11),
+#            RandomScaleCrop(473),
+#            RandomGaussianBlur(),
+#            RandomHorizontalFlip(),
+#            ColorJitter(0.4, 0.4),
+#            #ToTensor(),
+#            #Normalize(settings.MEAN, settings.STD),
+#])
+
+
+#import time
+#start = time.time()
+#for i in range(10):
+#    ig, m = trans(img, mask)
+#    #cv2.imwrite('test/{}.jpg'.format(i), ig)
+#
+#finish = time.time()
+#print(finish - start)

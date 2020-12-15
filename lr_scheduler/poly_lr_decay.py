@@ -75,5 +75,5 @@ class PolyLR(_LRScheduler):
 
     def get_lr(self):
         curr_iter = self.last_epoch + 1
-        r = curr_iter / self.max_iter
+        r = min(curr_iter / self.max_iter, 1)
         return [base_lr * (1.0 - r) ** self.power for base_lr in self.base_lrs]

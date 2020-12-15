@@ -4,7 +4,6 @@ __pycache__
 *.png
 checkpoints
 mnist
-test.py
 all_scalars.json
 runs
 camvid
@@ -17,3 +16,7 @@ tmp
 voc_aug
 nohup.out
 run.sh
+test_gpu.py
+run.py
+test
+res.txt

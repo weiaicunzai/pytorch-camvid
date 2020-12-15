@@ -11,14 +11,17 @@ STD = (0.30598050258519743, 0.3089986932156864, 0.3054061869915674)
 CHECKPOINT_FOLDER = 'checkpoints'
 LOG_FOLDER ='runs'
 
-TIME_NOW = datetime.now().isoformat()
+DATE_FORMAT = '%A_%d_%B_%Y_%Hh_%Mm_%Ss'
+#time of we run the script
+TIME_NOW = datetime.now().strftime(DATE_FORMAT)
 
 #save weights file per SAVE_EPOCH epoch
 SAVE_EPOCH = 10
 
 DATA_PATH = '/content/drive/My Drive/dataset/camvid'
 
-IMAGE_SIZE = (480, 360)
+#IMAGE_SIZE = (480, 360)
+IMAGE_SIZE = 473
 
 MILESTONES = [100, 150]
 
