@@ -32,6 +32,7 @@ if __name__ == '__main__':
     parser.add_argument('-dataset', type=str, default='Camvid', help='dataset name')
     parser.add_argument('-download', action='store_true', default=False,
         help='whether to download camvid dataset')
+    parser.add_argument('-gpu', action='store_true', default=True, help='whther use gpu')
     args = parser.parse_args()
 
     root_path = os.path.dirname(os.path.abspath(__file__))
@@ -108,7 +109,8 @@ if __name__ == '__main__':
         net.load_state_dict(torch.load(weight_path))
         print('Done loading!')
 
-    net = net.cuda()
+    if args.gpu:
+        net = net.cuda()
 
     tensor = torch.Tensor(1, 3, *settings.IMAGE_SIZE)
     utils.visualize_network(writer, net, tensor)
@@ -144,8 +146,10 @@ if __name__ == '__main__':
 
             optimizer.zero_grad()
 
-            images = images.cuda()
-            masks = masks.cuda()
+            if args.gpu:
+                images = images.cuda()
+                masks = masks.cuda()
+
             preds = net(images)
 
             loss = loss_fn(preds, masks)
@@ -218,8 +222,9 @@ if __name__ == '__main__':
         with torch.no_grad():
             for images, masks in validation_loader:
 
-                images = images.cuda()
-                masks = masks.cuda()
+                if args.gpu:
+                    images = images.cuda()
+                    masks = masks.cuda()
 
                 preds = net(images)
 
