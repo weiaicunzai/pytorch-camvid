@@ -32,7 +32,7 @@ if __name__ == '__main__':
     parser.add_argument('-dataset', type=str, default='Camvid', help='dataset name')
     parser.add_argument('-download', action='store_true', default=False,
         help='whether to download camvid dataset')
-    parser.add_argument('-gpu', action='store_true', default=True, help='whther use gpu')
+    parser.add_argument('-gpu', action='store_true', default=False, help='whether to use gpu')
     args = parser.parse_args()
 
     root_path = os.path.dirname(os.path.abspath(__file__))
@@ -112,7 +112,7 @@ if __name__ == '__main__':
     if args.gpu:
         net = net.cuda()
 
-    tensor = torch.Tensor(1, 3, *settings.IMAGE_SIZE)
+    tensor = torch.Tensor(1, 3, settings.IMAGE_SIZE, settings.IMAGE_SIZE)
     utils.visualize_network(writer, net, tensor)
 
     #optimizer = optim.Adam(net.parameters(), lr=args.lr, weight_decay=args.wd)
