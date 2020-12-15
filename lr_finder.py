@@ -44,7 +44,7 @@ def lr_finder(train_loader: DataLoader,
     optimizer = optim.AdamW(net.parameters(), lr=start_lr,
                             weight_decay=weight_decay)
     exponetial_scheduler = ExponentialLR(optimizer, args.end_lr, args.num_it)
-    loss_fn = nn.CrossEntropyLoss()
+    loss_fn = nn.CrossEntropyLoss(ignore_index=train_dataset.ignore_index)
 
     losses = []
     lrs = []
@@ -66,8 +66,9 @@ def lr_finder(train_loader: DataLoader,
 
             optimizer.zero_grad()
 
-            images = images.cuda()
-            masks = masks.cuda()
+            if args.gpu:
+                images = images.cuda()
+                masks = masks.cuda()
             preds = net(images)
 
             loss = loss_fn(preds, masks)
@@ -117,7 +118,7 @@ def plot(loss, lr, skip_start=10, skip_end=5, image_name='lr_finder.jpg'):
 if __name__ == '__main__':
 
     parser = argparse.ArgumentParser()
-    parser.add_argument('-b', type=int, default=10,
+    parser.add_argument('-b', type=int, default=5,
                         help='batch size for dataloader')
     parser.add_argument('-start_lr', type=float, default=1e-7,
                         help='initial learning rate')
@@ -135,6 +136,10 @@ if __name__ == '__main__':
                         default=0, help='weight decay factor')
     parser.add_argument('-net', type=str, required=True, help='network name')
     parser.add_argument('-dataset', type=str, default='Camvid', help='dataset name')
+    parser.add_argument('-download', action='store_true', default=False,
+        help='whether to download camvid dataset')
+    parser.add_argument('-gpu', action='store_true', default=False, help='whether to use gpu')
+
 
     args = parser.parse_args()
 
@@ -162,7 +167,8 @@ if __name__ == '__main__':
     train_dataset = train_loader.dataset
 
     net = utils.get_model(args.net, 3, train_dataset.class_num)
-    net = net.cuda()
+    if args.gpu:
+        net = net.cuda()
 
     loss, lr = lr_finder(train_loader, net, start_lr=args.start_lr,
                          end_lr=args.end_lr, stop_div=args.stop_div,
