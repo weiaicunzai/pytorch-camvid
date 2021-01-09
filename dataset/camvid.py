@@ -133,6 +133,7 @@ class CamVid(Dataset):
             raise RuntimeError('image set should only be train or set')
 
         self.transforms = transforms
+        self.class_names = self.class_names[:-1]
 
     def __len__(self):
         return len(self._image_names)
