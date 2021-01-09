@@ -97,8 +97,8 @@ if __name__ == '__main__':
     train_loader = utils.data_loader(args, 'train')
     train_dataset = train_loader.dataset
 
-    val_loader = utils.data_loader(args, 'val')
-    valid_dataset = val_loader.dataset
+    validation_loader = utils.data_loader(args, 'val')
+    valid_dataset = validation_loader.dataset
 
     net = utils.get_model(args.net, 3, train_dataset.class_num)
 
@@ -195,7 +195,9 @@ if __name__ == '__main__':
         #    epoch,
         #)
         #print(total_load_time, total_training)
+
         utils.visualize_param_hist(writer, net, epoch)
+
 
         finish = time.time()
         total_training = finish - start

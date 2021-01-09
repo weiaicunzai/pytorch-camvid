@@ -34,29 +34,24 @@ if __name__ == '__main__':
     #train_dataset = SBDataset('tmp', image_set='train_noval')
 
     train_transforms = transforms.Compose([
-            #transforms.Resize(settings.IMAGE_SIZE),
-            transforms.RandomCrop(513, pad_if_needed=True),
-
-            #transforms.RandomRotation(15, fill=train_dataset.ignore_index),
-            #transforms.RandomRotation(15, fill=0),
-            #transforms.RandomGaussianBlur(),
-            #transforms.RandomHorizontalFlip(),
-            #transforms.ColorJitter(0.4, 0.4),
+            transforms.RandomHorizontalFlip(),
+            transforms.RandomRotation(15, fill=train_dataset.ignore_index),
+            transforms.RandomScaleCrop(settings.IMAGE_SIZE),
+            transforms.RandomGaussianBlur(),
+            transforms.ColorJitter(0.4, 0.4),
             #transforms.ToTensor(),
             #transforms.Normalize(settings.MEAN, settings.STD),
     ])
 
     valid_transforms = transforms.Compose([
-        #transforms.Resize(settings.IMAGE_SIZE),
-
-        transforms.RandomCrop(513, pad_if_needed=True),
-
-        transforms.ToTensor(),
-        transforms.Normalize(settings.MEAN, settings.STD),
+            #transforms.RandomScaleCrop(settings.IMAGE_SIZE),
+            transforms.CenterCrop(settings.IMAGE_SIZE),
+            #transforms.ToTensor(),
+            #transforms.Normalize(settings.MEAN, settings.STD),
     ])
 
-    #train_dataset.transforms = train_transforms
-    #valid_dataset.transforms = valid_transforms
+    train_dataset.transforms = train_transforms
+    valid_dataset.transforms = valid_transforms
 
     train_loader = torch.utils.data.DataLoader(
             train_dataset, batch_size=8, num_workers=4)
@@ -69,7 +64,11 @@ if __name__ == '__main__':
     start = time.time()
 
     import utils
-    utils.plot_dataset(train_dataset, '.', class_id=10)
+    utils.plot_dataset(valid_dataset, '.', class_num=train_dataset.class_num, class_id=0, ignore_idx=train_dataset.ignore_index)
+
+    #for i in valid_dataset:
+    #    img, mask = i
+
 
 #    for epoch in range(500):
 #

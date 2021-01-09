@@ -86,6 +86,15 @@ def crop(img, i, j, h, w):
     if len(img.shape) == 2:
         return img[i:i + h, j:j + w]
 
+def center_crop(img, output_size):
+    if isinstance(output_size, numbers.Number):
+        output_size = (int(output_size), int(output_size))
+    h, w = img.shape[0:2]
+    th, tw = output_size
+    i = int(round((h - th) / 2.))
+    j = int(round((w - tw) / 2.))
+    return crop(img, i, j, th, tw)
+
 def pad(img, padding, fill=0, padding_mode='constant'):
     r"""Pad the given numpy ndarray on all sides with specified padding mode and fill value.
     Args:
@@ -896,3 +905,28 @@ class RandomScaleCrop:
 #
 #finish = time.time()
 #print(finish - start)
+
+class CenterCrop(object):
+    """Crops the given numpy ndarray at the center.
+    Args:
+        size (sequence or int): Desired output size of the crop. If size is an
+            int instead of sequence like (h, w), a square crop (size, size) is
+            made.
+    """
+    def __init__(self, size):
+        if isinstance(size, numbers.Number):
+            self.size = (int(size), int(size))
+        else:
+            self.size = size
+
+    def __call__(self, img, mask):
+        """
+        Args:
+            img (numpy ndarray): Image to be cropped.
+        Returns:
+            numpy ndarray: Cropped image.
+        """
+        return center_crop(img, self.size), center_crop(mask, self.size)
+
+    def __repr__(self):
+        return self.__class__.__name__ + '(size={0})'.format(self.size)

@@ -6,11 +6,14 @@ import random
 
 import numpy as np
 import torch
+import torch.nn.functional as F
 import cv2
 
 import transforms
 from dataset import CamVid, VOC2012Aug
 from conf import settings
+from metric import eval_metrics
+
 
 
 @torch.no_grad()
@@ -161,7 +164,8 @@ def get_model(model_name, input_channels, class_num):
         net = SegNet(input_channels, class_num)
 
     elif model_name == 'deeplabv3plus':
-        from models.deeplabv3plus import deeplabv3plus
+        #from models.deeplabv3plus import deeplabv3plus
+        from models.deeplabv3plus_tmp import deeplab as deeplabv3plus
         net = deeplabv3plus(class_num)
 
     else:
@@ -237,24 +241,58 @@ def get_model(model_name, input_channels, class_num):
 #            np.nan_to_num(iou, nan=nan_to_num)
 #    return all_acc, acc, iou
 
-def plot_dataset(dataset, out_dir, num=9, class_id=4, ignore_idx=255):
+def plot_dataset(dataset, out_dir, class_num, num=9, class_id=4, ignore_idx=255):
+    colors = [
+        [1, 122, 33],
+  	    (255,255,255),
+ 		(255,0,0),
+ 		(0,255,0),
+ 		(0,0,255),
+ 		(255,255,0),
+ 		(0,255,255),
+        (255,0,255),
+        (192,192,192),
+        (128,128,128),
+        (128,0,0),
+        (128,128,0),
+        (0,128,0),
+        (128,0,128),
+        (0,128,128),
+        (0,0,128),
+        (128,0,0),
+        	(255,255,224),
+            (250,250,210),
+            	(139,69,19),
+                (160,82,45),
+                (210,105,30),
+                (244,164,96),
+                	(176,196,222),
+                    	(240,255,240),
+                        	(105,105,105),
+    ]
+    print(len(colors))
+    colors = random.choices(colors, k=class_num)
     transforms = dataset.transforms
     for idx in range(num):
         i = random.choice(range(len(dataset)))
         img, label = dataset[i]
-        print(np.unique(label))
 
         label = label
         ignore_mask = label == ignore_idx
-        if 0 != class_id:
-            label[ignore_mask] = 0
-        else:
-            label[ignore_mask] = 1
+        print(ignore_idx)
+        #if 0 != class_id:
+        #    label[ignore_mask] = 0
+        #else:
+        #    label[ignore_mask] = 1
 
-        label[label == class_id] = 255
-        label[label != 255] = 0
-        label = cv2.cvtColor(label, cv2.COLOR_GRAY2BGR)
-        img = np.concatenate((img, label), axis=1)
+        #label[label == class_id] = 255
+        #label[label != 255] = 0
+        out_mask = cv2.cvtColor(label, cv2.COLOR_GRAY2BGR)
+        for cid in range(class_num):
+            out_mask[label == cid] = colors[cid]
+
+        out_mask[ignore_mask] = (0, 0, 0)
+        img = np.concatenate((img, out_mask), axis=1)
         cv2.imwrite(os.path.join(out_dir, 'label{}.png'.format(idx)), img)
 
 
@@ -306,7 +344,8 @@ def data_loader(args, image_set):
 
     elif image_set == 'val':
         trans = transforms.Compose([
-            transforms.RandomScaleCrop(settings.IMAGE_SIZE),
+            #transforms.RandomScaleCrop(settings.IMAGE_SIZE),
+            transforms.CenterCrop(settings.IMAGE_SIZE),
             transforms.ToTensor(),
             transforms.Normalize(settings.MEAN, settings.STD),
         ])
@@ -318,6 +357,176 @@ def data_loader(args, image_set):
     dataset.transforms = trans
 
     data_loader = torch.utils.data.DataLoader(
-            dataset, batch_size=args.b, num_workers=4, shuffle=True, pin_memory=True)
+            dataset, batch_size=args.b, num_workers=4, shuffle=True, pin_memory=False)
 
     return data_loader
+
+
+def net_process(model, image, mean, std=None, flip=True):
+    input = torch.from_numpy(image.transpose((2, 0, 1))).float()
+    input = input.cuda()
+    if std is None:
+        for t, m in zip(input, mean):
+            t.sub_(m)
+    else:
+        for t, m, s in zip(input, mean, std):
+            t.sub_(m).div_(s)
+    input = input.unsqueeze(0)
+    if flip:
+        input = torch.cat([input, input.flip(3)], 0)
+
+    with torch.no_grad():
+        output = model(input)
+    _, _, h_i, w_i = input.shape
+    _, _, h_o, w_o = output.shape
+    if (h_o != h_i) or (w_o != w_i):
+        output = F.interpolate(output, (h_i, w_i), mode='bilinear', align_corners=True)
+    output = F.softmax(output, dim=1)
+    if flip:
+        output = (output[0] + output[1].flip(2)) / 2
+    else:
+        output = output[0]
+    output = output.data.cpu().numpy()
+    output = output.transpose(1, 2, 0)
+    return output
+
+def scale_process(model, image, classes, crop_h, crop_w, h, w, mean, std=None, stride_rate=2/3):
+    ori_h, ori_w, _ = image.shape
+    pad_h = max(crop_h - ori_h, 0)
+    pad_w = max(crop_w - ori_w, 0)
+    pad_h_half = int(pad_h / 2)
+    pad_w_half = int(pad_w / 2)
+    if pad_h > 0 or pad_w > 0:
+        image = cv2.copyMakeBorder(image, pad_h_half, pad_h - pad_h_half, pad_w_half, pad_w - pad_w_half, cv2.BORDER_CONSTANT, value=mean)
+    new_h, new_w, _ = image.shape
+    stride_h = int(np.ceil(crop_h*stride_rate))
+    stride_w = int(np.ceil(crop_w*stride_rate))
+    #print(stride_h, stride_w)
+    # how many grids vertically, horizontal
+    grid_h = int(np.ceil(float(new_h-crop_h)/stride_h) + 1)
+    grid_w = int(np.ceil(float(new_w-crop_w)/stride_w) + 1)
+    prediction_crop = np.zeros((new_h, new_w, classes), dtype=float)
+    count_crop = np.zeros((new_h, new_w), dtype=float)
+    for index_h in range(0, grid_h):
+        for index_w in range(0, grid_w):
+            s_h = index_h * stride_h
+            e_h = min(s_h + crop_h, new_h)
+
+            # if remaining length is smaller than crop_h
+            # align the last crop_h with image border
+            s_h = e_h - crop_h
+            s_w = index_w * stride_w
+            e_w = min(s_w + crop_w, new_w)
+            s_w = e_w - crop_w
+            image_crop = image[s_h:e_h, s_w:e_w].copy()
+            count_crop[s_h:e_h, s_w:e_w] += 1
+            prediction_crop[s_h:e_h, s_w:e_w, :] += net_process(model, image_crop, mean, std)
+    prediction_crop /= np.expand_dims(count_crop, 2)
+    prediction_crop = prediction_crop[pad_h_half:pad_h_half+ori_h, pad_w_half:pad_w_half+ori_w]
+
+    # resize to original image size
+    prediction = cv2.resize(prediction_crop, (w, h), interpolation=cv2.INTER_LINEAR)
+    return prediction
+
+def test(net, test_dataloader, crop_size, scales, base_size, classes, mean, std):
+    net.eval()
+
+
+    iou = 0
+    all_acc = 0
+    acc = 0
+    best_iou = 0
+    ig_idx = test_dataloader.dataset.ignore_index
+    cls_names = test_dataloader.dataset.class_names
+    net = net.cuda()
+    for i, (img, label) in enumerate(test_dataloader):
+        img = img.cuda()
+        label = label.cuda()
+        img = np.squeeze(img.cpu().numpy(), axis=0)
+        img = np.transpose(img, (1, 2, 0))
+        h, w, _ = img.shape
+
+        prediction = np.zeros((h, w, classes), dtype=float)
+
+
+        for scale in scales:
+            long_size = round(scale * base_size)
+            new_h = long_size
+            new_w = long_size
+            if h > w:
+                new_w = round(long_size/float(h)*w)
+            else:
+                new_h = round(long_size/float(w)*h)
+
+            img_scale = cv2.resize(img, (new_w, new_h), interpolation=cv2.INTER_LINEAR)
+            crop_h = crop_size
+            crop_w = crop_size
+            prediction += scale_process(net, img_scale, classes, crop_h, crop_w, h, w, mean, std)
+
+        prediction /= len(scales)
+        prediction = np.argmax(prediction, axis=2)
+
+
+        preds = np.expand_dims(prediction, axis=0)
+        tmp_all_acc, tmp_acc, tmp_iou = eval_metrics(
+            preds,
+            label.detach().cpu().numpy(),
+            len(cls_names),
+            ignore_index=ig_idx,
+            metrics='mIoU',
+            nan_to_num=-1
+        )
+
+
+
+    all_acc += tmp_all_acc * len(img)
+    acc += tmp_acc * len(img)
+    iou += tmp_iou * len(img)
+
+    all_acc /= len(test_dataloader.dataset)
+    acc /= len(test_dataloader.dataset)
+    iou /= len(test_dataloader.dataset)
+    print('Iou for each class:')
+    print_eval(cls_names, iou)
+    print('Acc for each class:')
+    print_eval(cls_names, acc)
+    #print('%, '.join([':'.join([str(n), str(round(i, 2))]) for n, i in zip(cls_names, iou)]))
+    #iou = iou.tolist()
+    #iou = [i for i in iou if iou.index(i) != ig_idx]
+    miou = sum(iou) / len(iou)
+    print('Mean iou {:.4f}  All Pixel Acc {:.4f}'.format(miou, all_acc))
+    #print('%, '.join([':'.join([str(n), str(round(a, 2))]) for n, a in zip(cls_names, acc)]))
+    #print('All acc {:.2f}%'.format(all_acc))
+
+
+
+
+
+
+#from models.deeplabv3plus import deeplabv3plus
+#
+#net = deeplabv3plus(11)
+#dataset = CamVid(
+#    'data',
+#    image_set='val',
+#    download=True
+#)
+#trans = transforms.Compose([
+#    #transforms.RandomScaleCrop(settings.IMAGE_SIZE),
+#    transforms.ToTensor(),
+#    transforms.Normalize(settings.MEAN, settings.STD),
+#])
+#dataset.transforms = trans
+#
+#test_loader = torch.utils.data.DataLoader(
+#            dataset, batch_size=1, num_workers=4, shuffle=True, pin_memory=True)
+#
+#base_size = 512
+#MEAN = (0.42019099703461577, 0.41323568513979647, 0.4010048431259079)
+#STD = (0.30598050258519743, 0.3089986932156864, 0.3054061869915674)
+#scales = [0.5, 0.75, 1.0, 1.25, 1.5, 1.75]
+#
+#test(net, test_loader, 431, scales, 512, 11, MEAN, STD)
+#
+#
+#

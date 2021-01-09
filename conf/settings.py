@@ -16,7 +16,7 @@ DATE_FORMAT = '%A_%d_%B_%Y_%Hh_%Mm_%Ss'
 TIME_NOW = datetime.now().strftime(DATE_FORMAT)
 
 #save weights file per SAVE_EPOCH epoch
-SAVE_EPOCH = 10
+SAVE_EPOCH = 1
 
 DATA_PATH = '/content/drive/My Drive/dataset/camvid'
 
