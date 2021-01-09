@@ -94,12 +94,10 @@ class CamVid(Dataset):
 
         self.ignore_index = self.class_names.index('Void')
 
-        self.class_names = self.class_names[:-1]
-        self.class_num = len(self.class_names)
 
         image_fp = os.path.join(self._root, 'camvid', 'images', '*.png')
         if not os.path.exists(os.path.join(self._root, 'camvid')):
-            if not os.path.isdir(os.path.join(self._root, self._filename)):
+            if not os.path.exists(os.path.join(self._root, self._filename)):
                 raise RuntimeError('Dataset not found or corrupted.' +
                                    ' You can use download=True to download it')
             with tarfile.open(os.path.join(self._root, self._filename), "r") as tar:
@@ -137,6 +135,7 @@ class CamVid(Dataset):
 
         self.transforms = transforms
         self.class_names = self.class_names[:-1]
+        self.class_num = len(self.class_names)
 
     def __len__(self):
         return len(self._image_names)
