@@ -260,17 +260,16 @@ def plot_dataset(dataset, out_dir, class_num, num=9, class_id=4, ignore_idx=255)
         (0,128,128),
         (0,0,128),
         (128,0,0),
-        	(255,255,224),
-            (250,250,210),
-            	(139,69,19),
-                (160,82,45),
-                (210,105,30),
-                (244,164,96),
-                	(176,196,222),
-                    	(240,255,240),
-                        	(105,105,105),
+        (255,255,224),
+        (250,250,210),
+        (139,69,19),
+        (160,82,45),
+        (210,105,30),
+        (244,164,96),
+        (176,196,222),
+        (240,255,240),
+        (105,105,105),
     ]
-    print(len(colors))
     colors = random.choices(colors, k=class_num)
     transforms = dataset.transforms
     for idx in range(num):
@@ -357,7 +356,7 @@ def data_loader(args, image_set):
     dataset.transforms = trans
 
     data_loader = torch.utils.data.DataLoader(
-            dataset, batch_size=args.b, num_workers=4, shuffle=True, pin_memory=False)
+            dataset, batch_size=args.b, num_workers=4, shuffle=True, pin_memory=True)
 
     return data_loader
 
@@ -494,7 +493,7 @@ def test(net, test_dataloader, crop_size, scales, base_size, classes, mean, std)
     #iou = iou.tolist()
     #iou = [i for i in iou if iou.index(i) != ig_idx]
     miou = sum(iou) / len(iou)
-    print('Mean iou {:.4f}  All Pixel Acc {:.4f}'.format(miou, all_acc))
+    print('Epoch: {} Mean iou {:.4f}  All Pixel Acc {:.4f}'.format(epoch, miou, all_acc))
     #print('%, '.join([':'.join([str(n), str(round(a, 2))]) for n, a in zip(cls_names, acc)]))
     #print('All acc {:.2f}%'.format(all_acc))
 
