@@ -99,6 +99,9 @@ class CamVid(Dataset):
 
         image_fp = os.path.join(self._root, 'camvid', 'images', '*.png')
         if not os.path.exists(os.path.join(self._root, 'camvid')):
+            if not os.path.isdir(os.path.join(self._root, self._filename)):
+                raise RuntimeError('Dataset not found or corrupted.' +
+                                   ' You can use download=True to download it')
             with tarfile.open(os.path.join(self._root, self._filename), "r") as tar:
                 tar.extractall(path=self._root)
 
