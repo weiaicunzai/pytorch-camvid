@@ -198,6 +198,9 @@ if __name__ == '__main__':
 
         utils.visualize_param_hist(writer, net, epoch)
 
+        if args.gpu:
+            print('GPU INFO.....')
+            print(torch.cuda.memory_summary(), end='')
 
         finish = time.time()
         total_training = finish - start
