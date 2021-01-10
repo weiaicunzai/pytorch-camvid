@@ -266,7 +266,7 @@ if __name__ == '__main__':
         #iou = iou.tolist()
         #iou = [i for i in iou if iou.index(i) != ig_idx]
         miou = sum(iou) / len(iou)
-        print('Mean iou {:.4f}  All Pixel Acc {:.4f}'.format(miou, all_acc))
+        print('Epoch {}  Mean iou {:.4f}  All Pixel Acc {:.4f}'.format(epoch, miou, all_acc))
         #print('%, '.join([':'.join([str(n), str(round(a, 2))]) for n, a in zip(cls_names, acc)]))
         #print('All acc {:.2f}%'.format(all_acc))
 
