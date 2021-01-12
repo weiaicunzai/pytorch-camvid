@@ -26,7 +26,7 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     data_transforms = transforms.Compose([
-        transforms.Resize(settings.IMAGE_SIZE),
+        transforms.CenterCrop(settings.IMAGE_SIZE),
         transforms.ToTensor(),
         transforms.Normalize(settings.MEAN, settings.STD)
     ])
@@ -50,6 +50,8 @@ if __name__ == '__main__':
         preds = torch.argmax(preds, dim=1)
         preds = preds.cpu().data.numpy()
         preds = preds.squeeze(0)
+        preds = preds.argmax(dim=1)
+
 
 
     preds = cv2.resize(preds, src.shape[:2][::-1], interpolation=cv2.INTER_NEAREST)

@@ -124,7 +124,6 @@ if __name__ == '__main__':
     loss_fn = nn.CrossEntropyLoss(ignore_index=train_dataset.ignore_index)
 
     best_iou = 0
-
     trained_epochs = 0
 
     if args.resume:
@@ -220,7 +219,6 @@ if __name__ == '__main__':
         iou = 0
         all_acc = 0
         acc = 0
-        best_iou = 0
 
         cls_names = valid_dataset.class_names
         ig_idx = valid_dataset.ignore_index

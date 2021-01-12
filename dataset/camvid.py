@@ -127,7 +127,7 @@ class CamVid(Dataset):
             for img in glob.iglob(image_fp):
                 if os.path.basename(img) not in valids and '.png' in img:
                     self._image_names.append(img)
-        elif image_set == 'val':
+        elif image_set in ['val', 'test']:
             self._image_names = [img for img in glob.iglob(image_fp) if os.path.basename(img) in valids]
 
         else:
@@ -176,5 +176,3 @@ class CamVid(Dataset):
                 image, label = self.transforms(image, label)
 
         return image, label
-
-

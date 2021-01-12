@@ -349,14 +349,27 @@ def data_loader(args, image_set):
             transforms.Normalize(settings.MEAN, settings.STD),
         ])
 
+    elif image_set == 'test':
+        trans = transforms.Compose([
+            transforms.ToTensor(),
+            #transforms.Normalize(settings.MEAN, settings.STD),
+        ])
+
     else:
         raise ValueError('image_set should be one of "train", "val", \
                 instead got "{}"'.format(image_set))
 
     dataset.transforms = trans
 
-    data_loader = torch.utils.data.DataLoader(
-            dataset, batch_size=args.b, num_workers=4, shuffle=True, pin_memory=True)
+    if image_set == 'test':
+        data_loader = torch.utils.data.DataLoader(
+            dataset, batch_size=1, num_workers=4, shuffle=False, pin_memory=True)
+    elif image_set == 'val':
+        data_loader = torch.utils.data.DataLoader(
+            dataset, batch_size=args.b, num_workers=4, shuffle=False, pin_memory=True)
+    else:
+        data_loader = torch.utils.data.DataLoader(
+                dataset, batch_size=args.b, num_workers=4, shuffle=True, pin_memory=True)
 
     return data_loader
 
@@ -382,6 +395,9 @@ def net_process(model, image, mean, std=None, flip=True):
         output = F.interpolate(output, (h_i, w_i), mode='bilinear', align_corners=True)
     output = F.softmax(output, dim=1)
     if flip:
+        # output[1] only has 3 dimension
+        # 2rd dimension of output[1] equals to
+        # third dimension of input
         output = (output[0] + output[1].flip(2)) / 2
     else:
         output = output[0]
@@ -439,14 +455,13 @@ def test(net, test_dataloader, crop_size, scales, base_size, classes, mean, std)
     cls_names = test_dataloader.dataset.class_names
     net = net.cuda()
     for i, (img, label) in enumerate(test_dataloader):
+        assert test_dataloader.batch_size == 1
         img = img.cuda()
         label = label.cuda()
         img = np.squeeze(img.cpu().numpy(), axis=0)
         img = np.transpose(img, (1, 2, 0))
         h, w, _ = img.shape
-
         prediction = np.zeros((h, w, classes), dtype=float)
-
 
         for scale in scales:
             long_size = round(scale * base_size)
@@ -465,7 +480,6 @@ def test(net, test_dataloader, crop_size, scales, base_size, classes, mean, std)
         prediction /= len(scales)
         prediction = np.argmax(prediction, axis=2)
 
-
         preds = np.expand_dims(prediction, axis=0)
         tmp_all_acc, tmp_acc, tmp_iou = eval_metrics(
             preds,
@@ -476,11 +490,9 @@ def test(net, test_dataloader, crop_size, scales, base_size, classes, mean, std)
             nan_to_num=-1
         )
 
-
-
-    all_acc += tmp_all_acc * len(img)
-    acc += tmp_acc * len(img)
-    iou += tmp_iou * len(img)
+        all_acc += tmp_all_acc
+        acc += tmp_acc
+        iou += tmp_iou
 
     all_acc /= len(test_dataloader.dataset)
     acc /= len(test_dataloader.dataset)
@@ -493,7 +505,8 @@ def test(net, test_dataloader, crop_size, scales, base_size, classes, mean, std)
     #iou = iou.tolist()
     #iou = [i for i in iou if iou.index(i) != ig_idx]
     miou = sum(iou) / len(iou)
-    print('Epoch: {} Mean iou {:.4f}  All Pixel Acc {:.4f}'.format(epoch, miou, all_acc))
+    macc = sum(acc) / len(acc)
+    print('Mean acc {:.4f} Mean iou {:.4f}  All Pixel Acc {:.4f}'.format(macc, miou, all_acc))
     #print('%, '.join([':'.join([str(n), str(round(a, 2))]) for n, a in zip(cls_names, acc)]))
     #print('All acc {:.2f}%'.format(all_acc))
 
